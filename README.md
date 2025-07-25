@@ -1,0 +1,2 @@
+# DePaulProject
+Implementing RAG
