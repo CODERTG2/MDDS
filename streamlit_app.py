@@ -22,26 +22,26 @@ if "search_query" not in st.session_state:
 if "result_shown" not in st.session_state:
     st.session_state.result_shown = False
 
-# ---- Custom CSS ----
-st.markdown(f"""
+# ---- Title and Greeting ----
+st.markdown("""
     <style>
-    html, body, [class*="css"] {{
+    html, body, [class*="css"] {
         font-family: 'Segoe UI', sans-serif;
         transition: background-color 0.6s ease, color 0.6s ease;
-    }}
-    .title {{
+    }
+    .title {
         font-size: 2.2rem;
         font-weight: bold;
         text-align: center;
         margin-top: 1rem;
-    }}
-    .subtitle {{
+    }
+    .subtitle {
         font-size: 1.2rem;
         text-align: center;
         margin-bottom: 2rem;
         color: #999;
-    }}
-    .loader {{
+    }
+    .loader {
         border: 6px solid #f3f3f3;
         border-top: 6px solid #3498db;
         border-radius: 50%;
@@ -49,25 +49,25 @@ st.markdown(f"""
         height: 50px;
         animation: spin 1s linear infinite;
         margin: 20px auto;
-    }}
-    @keyframes spin {{
-        0% {{ transform: rotate(0deg); }}
-        100% {{ transform: rotate(360deg); }}
-    }}
-    .search-container {{
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .search-container {
         position: relative;
         width: 100%;
-    }}
-    .search-container input {{
+    }
+    .search-container input {
         width: 100%;
         padding-right: 40px;
-    }}
-    .search-icon {{
+    }
+    .search-icon {
         position: absolute;
         right: 10px;
         top: 7px;
         color: gray;
-    }}
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -79,7 +79,7 @@ if st.session_state.dark_mode:
                 background-color: #0e1117 !important;
                 color: #FAFAFA !important;
             }
-            .stTextInput > div > div > input {
+            input, .stTextInput > div > div > input {
                 background-color: #262730 !important;
                 color: #FAFAFA !important;
             }
@@ -88,7 +88,7 @@ if st.session_state.dark_mode:
 else:
     st.markdown("""
         <style>
-            .stTextInput > div > div > input {
+            input, .stTextInput > div > div > input {
                 background-color: white !important;
                 color: black !important;
             }
@@ -98,17 +98,21 @@ else:
 # ---- Sidebar ----
 with st.sidebar:
     st.title("Customize")
-    st.session_state.username = st.text_input("Your Name", value=st.session_state.username)
-    st.session_state.temperature = st.slider(
-        "Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05
-    )
-    st.session_state.dark_mode = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
+    username = st.text_input("Your Name", value=st.session_state.username)
+    if username != st.session_state.username:
+        st.session_state.username = username
+    temp = st.slider("Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05)
+    if temp != st.session_state.temperature:
+        st.session_state.temperature = temp
+    toggle = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
+    if toggle != st.session_state.dark_mode:
+        st.session_state.dark_mode = toggle
+        st.experimental_rerun()
     if st.button("🧹 Clear Chat"):
         st.session_state.search_query = ""
         st.session_state.result_shown = False
         st.session_state.loading = False
 
-# ---- Title and Greeting ----
 st.markdown("<div class='title'>Medical Diagnostic Device Research</div>", unsafe_allow_html=True)
 
 greeting = f"Hello {st.session_state.username}, what would you like to search?" if st.session_state.username else "What would you like to search?"
