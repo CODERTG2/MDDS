@@ -42,9 +42,6 @@ def inject_custom_css():
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
-            input#search_box {
-                outline: none;
-            }
         </style>
     """, unsafe_allow_html=True)
 
@@ -64,7 +61,7 @@ if "search_query" not in st.session_state:
 
 # ---- Sidebar ----
 with st.sidebar:
-    st.title("Customize")
+    st.title("  Customize")
 
     st.session_state.username = st.text_input("Your Name", value=st.session_state.username)
 
@@ -120,7 +117,7 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
-# ---- Main Title & Greeting ----
+# ---- Title and Greeting ----
 st.markdown("<div class='title'>Medical Diagnostic Device Research</div>", unsafe_allow_html=True)
 
 if st.session_state.username.strip():
@@ -130,50 +127,53 @@ else:
 
 st.markdown(f"<div class='subtitle'>{greeting}</div>", unsafe_allow_html=True)
 
-# ---- Search Bar with Icon ----
-search_input_html = f"""
-    <div style="display: flex; justify-content: center;">
-        <div style="position: relative; width: 100%; max-width: 500px;">
-            <input type="text" id="search_box" name="search_input" placeholder="Search..." style="
-                width: 100%;
-                padding: 12px 40px 12px 12px;
-                border-radius: 10px;
-                border: 1px solid #ccc;
-                font-size: 16px;
-                background-color: {'#262730' if st.session_state.dark_mode else 'white'};
-                color: {'white' if st.session_state.dark_mode else 'black'};
-            ">
-            <span style="
+# ---- Search Input with Icon ----
+search_container = st.container()
+with search_container:
+    search_query = st.text_input(
+        label="",
+        value=st.session_state.search_query,
+        key="search_query",
+        placeholder="Search medical devices, papers, or terms...",
+        label_visibility="collapsed"
+    )
+
+    st.markdown(
+        """
+        <style>
+            .stTextInput input {
+                padding-right: 2.5rem;
+            }
+            .search-icon {
                 position: absolute;
-                right: 12px;
+                right: 36px;
                 top: 50%;
                 transform: translateY(-50%);
                 color: #888;
+                font-size: 20px;
                 pointer-events: none;
-            ">🔍</span>
-        </div>
-    </div>
-    <script>
-        const inputBox = window.parent.document.getElementById("search_box");
-        const streamlitInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-        if (inputBox && streamlitInput) {{
-            inputBox.addEventListener("input", function(e) {{
-                streamlitInput.value = e.target.value;
-                streamlitInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
-            }});
-        }}
-    </script>
-"""
-st.markdown(search_input_html, unsafe_allow_html=True)
+            }
+        </style>
+        <script>
+            const inputParent = window.parent.document.querySelectorAll('[data-testid="stTextInput"]')[0];
+            if (inputParent && !inputParent.querySelector('.search-icon')) {
+                const iconSpan = document.createElement('span');
+                iconSpan.innerHTML = '🔍';
+                iconSpan.classList.add('search-icon');
+                inputParent.style.position = 'relative';
+                inputParent.appendChild(iconSpan);
+            }
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
 
-# ---- Hidden Text Input for Streamlit ----
-search_query = st.text_input("Search Hidden", key="search_query", label_visibility="collapsed")
 search_button = st.button("Search", use_container_width=True)
 
 if search_button and search_query.strip():
     st.session_state.loading = True
 
-# ---- Loading State ----
+# ---- Loading ----
 if st.session_state.loading:
     loader_container = st.empty()
     status_area = st.empty()
