@@ -1,6 +1,7 @@
 import streamlit as st
 import time
 
+# ---- Page Config ----
 st.set_page_config(
     page_title="Medical Diagnostic Device Research",
     page_icon="🧬",
@@ -8,90 +9,43 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ---- Custom CSS including flip button ----
-st.markdown("""
-<style>
-html, body, [class*="css"] {
-  font-family: 'Segoe UI', sans-serif;
-  transition: background-color 0.6s ease, color 0.6s ease;
-}
-.title {
-  font-size: 2.2rem;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 1rem;
-}
-.subtitle {
-  font-size: 1.2rem;
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #999;
-}
-.loader {
-  border: 6px solid #f3f3f3;
-  border-top: 6px solid #3498db;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
-}
+# ---- Custom CSS ----
+def inject_custom_css():
+    st.markdown("""
+        <style>
+            html, body, [class*="css"] {
+                font-family: 'Segoe UI', sans-serif;
+                transition: background-color 0.6s ease, color 0.6s ease;
+            }
+            .title {
+                font-size: 2.2rem;
+                font-weight: bold;
+                text-align: center;
+                margin-top: 1rem;
+            }
+            .subtitle {
+                font-size: 1.2rem;
+                text-align: center;
+                margin-bottom: 2rem;
+                color: #999;
+            }
+            .loader {
+                border: 6px solid #f3f3f3;
+                border-top: 6px solid #3498db;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                animation: spin 1s linear infinite;
+                margin: 20px auto;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
-/* Flip Button */
-.flip-btn {
-  background-color: #0e1117;
-  color: white;
-  font-weight: 600;
-  font-size: 1rem;
-  width: 130px;
-  height: 40px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  perspective: 600px;
-  position: relative;
-  outline: none;
-}
-.flip-btn-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-  transition: transform 0.6s;
-  transform-style: preserve-3d;
-  border-radius: 5px;
-  box-shadow:
-    inset 2px 2px 2px 0px rgba(255,255,255,0.5),
-    7px 7px 20px 0px rgba(0,0,0,0.1),
-    4px 4px 5px 0px rgba(0,0,0,0.1);
-  background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);
-}
-.flip-btn:hover .flip-btn-inner {
-  transform: rotateX(90deg);
-}
-.flip-btn-front, .flip-btn-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  line-height: 40px;
-  backface-visibility: hidden;
-  border-radius: 5px;
-  user-select: none;
-}
-.flip-btn-front {
-  color: white;
-}
-.flip-btn-back {
-  background: linear-gradient(0deg, rgba(14,17,23,1) 0%, rgba(14,17,23,1) 100%);
-  color: white;
-  transform: rotateX(-90deg);
-}
-</style>
-""", unsafe_allow_html=True)
+inject_custom_css()
 
 # ---- Session State ----
 if "dark_mode" not in st.session_state:
@@ -108,8 +62,11 @@ if "search_query" not in st.session_state:
 # ---- Sidebar ----
 with st.sidebar:
     st.title("Customize")
+
     st.session_state.username = st.text_input("Your Name", value=st.session_state.username)
+
     st.markdown("---")
+
     st.session_state.temperature = st.slider(
         "Creativity (LLM Temperature)",
         min_value=0.0, max_value=1.0,
@@ -117,7 +74,9 @@ with st.sidebar:
         step=0.05,
         help="Higher values make the LLM more creative and open-ended."
     )
+
     st.markdown("---")
+
     st.session_state.dark_mode = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
 
 # ---- Dark Mode Styling ----
@@ -177,73 +136,17 @@ search_query = st.text_input(
     label_visibility="collapsed"
 )
 
-# ---- Custom Flip Button ----
-clicked = st.button(
-    label="", 
-    key="search_btn", 
-    help="Click to search",
-    args=None,
-    kwargs=None
-)
+search_button = st.button("Search", use_container_width=True)
 
-# Render flip button using markdown and a bit of hack:
-# We can't directly embed complex HTML inside st.button,
-# so we simulate the style and use st.button for actual clicks.
-# We'll overlay the CSS styles onto the real button using st.markdown with 'for' label targeting.
-
-# Trick: style the real button after rendering
-st.markdown("""
-<style>
-div[role="button"][data-testid="stButton"] > button {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  width: 130px !important;
-  height: 40px !important;
-  cursor: pointer !important;
-  perspective: 600px;
-  position: relative;
-  outline: none !important;
-}
-div[role="button"][data-testid="stButton"] > button > span {
-  display: block !important;
-  position: relative !important;
-  width: 130px !important;
-  height: 40px !important;
-  text-align: center !important;
-  transition: transform 0.6s !important;
-  transform-style: preserve-3d !important;
-  border-radius: 5px !important;
-  box-shadow:
-    inset 2px 2px 2px 0px rgba(255,255,255,0.5),
-    7px 7px 20px 0px rgba(0,0,0,0.1),
-    4px 4px 5px 0px rgba(0,0,0,0.1) !important;
-  background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%) !important;
-  color: white !important;
-  line-height: 40px !important;
-  font-weight: 600 !important;
-  font-size: 1rem !important;
-  user-select: none !important;
-}
-div[role="button"][data-testid="stButton"]:hover > button > span {
-  transform: rotateX(90deg) !important;
-  background: linear-gradient(0deg, rgba(14,17,23,1) 0%, rgba(14,17,23,1) 100%) !important;
-  color: transparent !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ---- Search Logic ----
-if clicked and search_query.strip():
+if search_button and search_query.strip():
     st.session_state.loading = True
-    st.session_state.search_query = search_query.strip()
 
 # ---- Loading State ----
 if st.session_state.loading:
-    loader_area = st.empty()
-    message_area = st.empty()
+    loader_container = st.empty()
+    status_area = st.empty()
 
-    loader_area.markdown('<div class="loader"></div>', unsafe_allow_html=True)
+    loader_container.markdown('<div class="loader"></div>', unsafe_allow_html=True)
 
     steps = [
         "Creating subqueries from your query...",
@@ -255,13 +158,13 @@ if st.session_state.loading:
     ]
 
     for step in steps:
-        message_area.markdown(
+        status_area.markdown(
             f"<p style='text-align:center; font-size:1.05rem;'>{step}</p>",
             unsafe_allow_html=True
         )
         time.sleep(1.1)
 
-    loader_area.empty()
-    message_area.empty()
-    st.success(f"Results for: **{st.session_state.search_query}**")
+    loader_container.empty()
+    status_area.empty()
+    st.success(f"Results for: **{search_query}**")
     st.session_state.loading = False
