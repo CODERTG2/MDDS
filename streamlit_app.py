@@ -48,8 +48,8 @@ st.markdown(
     }}
 
     .block-container {{
-        padding: 0;
-        margin: 0;
+        padding: 0 !important;
+        margin: 0 !important;
     }}
 
     .main-container {{
@@ -57,8 +57,8 @@ st.markdown(
         padding: 3rem 4rem;
         border-radius: 16px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-        width: 100%;
         max-width: 600px;
+        width: 100%;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -92,8 +92,9 @@ st.markdown(
         border: none;
         font-size: 1.1rem;
         cursor: pointer;
-        margin-top: 1.5rem;
         transition: background-color 0.3s ease;
+        display: block;
+        margin: 1.5rem auto 0;
     }}
 
     .stButton > button:hover {{
@@ -138,14 +139,11 @@ st.markdown(
 )
 
 def main():
-    # Center wrapper
     st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-    # Title & Subtitle
     st.markdown('<div class="title">Medical Diagnostic Device Research</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Search the latest research and insights</div>', unsafe_allow_html=True)
 
-    # Search input
     search_query = st.text_input(
         label="Enter your search term...",
         key="search",
@@ -153,22 +151,18 @@ def main():
         placeholder="E.g., point-of-care diagnostics, biosensors"
     )
 
-    # Initialize loading state
     if "loading" not in st.session_state:
         st.session_state.loading = False
 
-    # Button
     if st.button("Search"):
         if search_query.strip() == "":
             st.warning("Please enter a search term to proceed.")
         else:
             st.session_state.loading = True
 
-    # Loading logic
     if st.session_state.loading:
         with st.spinner("Running Multi-Query RAG..."):
             st.markdown('<div class="loader"></div>', unsafe_allow_html=True)
-
             status_area = st.empty()
             steps = [
                 "🔍 Creating subqueries from your query...",
@@ -186,8 +180,9 @@ def main():
                 )
                 time.sleep(1.1)
 
-            st.success(f"Results for: **{search_query}**")
-            st.session_state.loading = False
+        # Show final results
+        st.success(f"✅ Results for: **{search_query}**")
+        st.session_state.loading = False
 
     st.markdown('</div>', unsafe_allow_html=True)
 
