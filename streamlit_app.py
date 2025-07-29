@@ -83,6 +83,10 @@ if st.session_state.dark_mode:
                 background-color: #262730 !important;
                 color: #FAFAFA !important;
             }
+            .sidebar .stButton button, .stButton button {
+                background-color: #444 !important;
+                color: white !important;
+            }
         </style>
     """, unsafe_allow_html=True)
 else:
@@ -90,6 +94,10 @@ else:
         <style>
             input, .stTextInput > div > div > input {
                 background-color: white !important;
+                color: black !important;
+            }
+            .sidebar .stButton button, .stButton button {
+                background-color: #f0f0f0 !important;
                 color: black !important;
             }
         </style>
@@ -104,10 +112,7 @@ with st.sidebar:
     temp = st.slider("Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05)
     if temp != st.session_state.temperature:
         st.session_state.temperature = temp
-    toggle = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
-    if toggle != st.session_state.dark_mode:
-        st.session_state.dark_mode = toggle
-        st.experimental_rerun()
+    st.session_state.dark_mode = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
     if st.button("🧹 Clear Chat"):
         st.session_state.search_query = ""
         st.session_state.result_shown = False
