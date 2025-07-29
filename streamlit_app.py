@@ -1,7 +1,6 @@
 import streamlit as st
 import time
 
-# ---- Page Config ----
 st.set_page_config(
     page_title="Medical Diagnostic Device Research",
     page_icon="🧬",
@@ -9,8 +8,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ---- Custom CSS ----
-def inject_custom_css():
+# ---- Inject Custom CSS ----
+def inject_css():
     st.markdown("""
         <style>
             html, body, [class*="css"] {
@@ -42,10 +41,34 @@ def inject_custom_css():
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
+            .search-container {
+                position: relative;
+                width: 100%;
+                max-width: 600px;
+                margin: auto;
+            }
+            .search-container input {
+                width: 100%;
+                padding-right: 3rem;
+                font-size: 1rem;
+                height: 3rem;
+                padding-left: 1rem;
+                border-radius: 0.5rem;
+                border: 1px solid #ccc;
+            }
+            .search-icon {
+                position: absolute;
+                right: 1rem;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 1.2rem;
+                color: #888;
+                pointer-events: none;
+            }
         </style>
     """, unsafe_allow_html=True)
 
-inject_custom_css()
+inject_css()
 
 # ---- Session State ----
 if "dark_mode" not in st.session_state:
@@ -61,7 +84,7 @@ if "search_query" not in st.session_state:
 
 # ---- Sidebar ----
 with st.sidebar:
-    st.title("  Customize")
+    st.title("🎛 Customize")
 
     st.session_state.username = st.text_input("Your Name", value=st.session_state.username)
 
@@ -79,22 +102,18 @@ with st.sidebar:
 
     st.session_state.dark_mode = st.checkbox("🌙 Dark Mode", value=st.session_state.dark_mode)
 
-# ---- Dark Mode Styling ----
+# ---- Dark Mode ----
 if st.session_state.dark_mode:
     st.markdown("""
         <style>
             body, .main, .stApp {
                 background-color: #0e1117 !important;
                 color: #FAFAFA !important;
-                transition: background-color 0.6s ease, color 0.6s ease;
             }
-            .stTextInput > div > div > input {
+            .search-container input {
                 background-color: #262730 !important;
                 color: #FAFAFA !important;
-            }
-            .stButton > button {
-                background-color: #1f77b4 !important;
-                color: white !important;
+                border: 1px solid #444 !important;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -104,20 +123,11 @@ else:
             body, .main, .stApp {
                 background-color: white !important;
                 color: black !important;
-                transition: background-color 0.6s ease, color 0.6s ease;
-            }
-            .stTextInput > div > div > input {
-                background-color: white !important;
-                color: black !important;
-            }
-            .stButton > button {
-                background-color: #0e1117 !important;
-                color: white !important;
             }
         </style>
     """, unsafe_allow_html=True)
 
-# ---- Title and Greeting ----
+# ---- Title ----
 st.markdown("<div class='title'>Medical Diagnostic Device Research</div>", unsafe_allow_html=True)
 
 if st.session_state.username.strip():
@@ -127,53 +137,36 @@ else:
 
 st.markdown(f"<div class='subtitle'>{greeting}</div>", unsafe_allow_html=True)
 
-# ---- Search Input with Icon ----
-search_container = st.container()
-with search_container:
-    search_query = st.text_input(
-        label="",
-        value=st.session_state.search_query,
-        key="search_query",
-        placeholder="Search medical devices, papers, or terms...",
-        label_visibility="collapsed"
-    )
+# ---- Custom Search Input with Icon ----
+search_input_html = f"""
+<div class="search-container">
+    <input id="searchbox" name="searchbox" placeholder="Search medical devices, papers, or terms..." />
+    <span class="search-icon">🔍</span>
+</div>
+<script>
+    const inputBox = window.parent.document.querySelector('input[name="searchbox"]');
+    inputBox.addEventListener("input", function() {{
+        const streamlitInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+        if (streamlitInput) {{
+            streamlitInput.value = this.value;
+            streamlitInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+        }}
+    }});
+</script>
+"""
 
-    st.markdown(
-        """
-        <style>
-            .stTextInput input {
-                padding-right: 2.5rem;
-            }
-            .search-icon {
-                position: absolute;
-                right: 36px;
-                top: 50%;
-                transform: translateY(-50%);
-                color: #888;
-                font-size: 20px;
-                pointer-events: none;
-            }
-        </style>
-        <script>
-            const inputParent = window.parent.document.querySelectorAll('[data-testid="stTextInput"]')[0];
-            if (inputParent && !inputParent.querySelector('.search-icon')) {
-                const iconSpan = document.createElement('span');
-                iconSpan.innerHTML = '🔍';
-                iconSpan.classList.add('search-icon');
-                inputParent.style.position = 'relative';
-                inputParent.appendChild(iconSpan);
-            }
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
+st.markdown(search_input_html, unsafe_allow_html=True)
 
+# Backup Python input to capture text
+search_query = st.text_input("Hidden search input", key="search_query", label_visibility="collapsed")
+
+# ---- Search Button ----
 search_button = st.button("Search", use_container_width=True)
 
 if search_button and search_query.strip():
     st.session_state.loading = True
 
-# ---- Loading ----
+# ---- Loading Simulation ----
 if st.session_state.loading:
     loader_container = st.empty()
     status_area = st.empty()
@@ -194,7 +187,7 @@ if st.session_state.loading:
             f"<p style='text-align:center; font-size:1.05rem;'>{step}</p>",
             unsafe_allow_html=True
         )
-        time.sleep(1.1)
+        time.sleep(1)
 
     loader_container.empty()
     status_area.empty()
