@@ -59,7 +59,7 @@ if "temperature" not in st.session_state:
 
 # ---- Sidebar ----
 with st.sidebar:
-    st.title("🎛 Customize")
+    st.title("  Customize")
 
     st.session_state.username = st.text_input("Your Name", value=st.session_state.username)
 
