@@ -80,10 +80,12 @@ with st.sidebar:
     temp = st.slider("Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05)
     if temp != st.session_state.temperature:
         st.session_state.temperature = temp
-    toggle = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
-    if toggle != st.session_state.dark_mode:
-        st.session_state.dark_mode = toggle
-        st.experimental_rerun()
+
+    if st.checkbox("Dark Mode", value=st.session_state.dark_mode, key="dark_toggle"):
+        st.session_state.dark_mode = True
+    else:
+        st.session_state.dark_mode = False
+
     if st.button("🧹 Clear Chat"):
         st.session_state.search_query = ""
         st.session_state.result_shown = False
