@@ -1,87 +1,174 @@
 import streamlit as st
 import time
 
-st.set_page_config(page_title="Medical Diagnostic Device Research")
+st.set_page_config(
+    page_title="Medical Diagnostic Device Research",
+    page_icon="🧬",
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
 
-# CSS for animated button adapted with your colors and sizes
+# ---- Custom CSS including flip button ----
 st.markdown("""
 <style>
-.btn-12 {
-  position: relative;
-  border:none;
-  box-shadow: none;
-  width: 130px;
-  height: 40px;
-  line-height: 42px;
-  perspective: 230px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 16px;
-  color: white;
-  background: linear-gradient(0deg, rgba(14,17,23,1) 0%, rgba(14,17,23,1) 100%);
-  border-radius: 5px;
-  transition: color 0.3s;
-  user-select: none;
+html, body, [class*="css"] {
+  font-family: 'Segoe UI', sans-serif;
+  transition: background-color 0.6s ease, color 0.6s ease;
 }
-.btn-12 span {
-  display: block;
-  position: absolute;
-  width: 130px;
-  height: 40px;
-  box-shadow:
-    inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.1),
-    4px 4px 5px 0px rgba(0,0,0,.1);
-  border-radius: 5px;
-  margin: 0;
+.title {
+  font-size: 2.2rem;
+  font-weight: bold;
   text-align: center;
-  box-sizing: border-box;
-  transition: all .3s;
-  left: 0;
-  top: 0;
-  line-height: 40px;
+  margin-top: 1rem;
 }
-.btn-12 span:nth-child(1) {
+.subtitle {
+  font-size: 1.2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #999;
+}
+.loader {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
+/* Flip Button */
+.flip-btn {
+  background-color: #0e1117;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  width: 130px;
+  height: 40px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  perspective: 600px;
+  position: relative;
+  outline: none;
+}
+.flip-btn-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  border-radius: 5px;
   box-shadow:
-    -7px -7px 20px 0px #fff9,
-    -4px -4px 5px 0px #fff9,
-    7px 7px 20px 0px #0002,
-    4px 4px 5px 0px #0001;
-  transform: rotateX(90deg);
-  transform-origin: 50% 50% -20px;
+    inset 2px 2px 2px 0px rgba(255,255,255,0.5),
+    7px 7px 20px 0px rgba(0,0,0,0.1),
+    4px 4px 5px 0px rgba(0,0,0,0.1);
   background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);
 }
-.btn-12 span:nth-child(2) {
-  transform: rotateX(0deg);
-  transform-origin: 50% 50% -20px;
+.flip-btn:hover .flip-btn-inner {
+  transform: rotateX(90deg);
+}
+.flip-btn-front, .flip-btn-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  line-height: 40px;
+  backface-visibility: hidden;
+  border-radius: 5px;
+  user-select: none;
+}
+.flip-btn-front {
+  color: white;
+}
+.flip-btn-back {
   background: linear-gradient(0deg, rgba(14,17,23,1) 0%, rgba(14,17,23,1) 100%);
-}
-.btn-12:hover span:nth-child(1) {
-  box-shadow:
-    inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.1),
-    4px 4px 5px 0px rgba(0,0,0,.1);
-  transform: rotateX(0deg);
-}
-.btn-12:hover span:nth-child(2) {
-  box-shadow:
-    inset 2px 2px 2px 0px rgba(255,255,255,.5),
-    7px 7px 20px 0px rgba(0,0,0,.1),
-    4px 4px 5px 0px rgba(0,0,0,.1);
-  color: transparent;
+  color: white;
   transform: rotateX(-90deg);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Session state for search
+# ---- Session State ----
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
+if "loading" not in st.session_state:
+    st.session_state.loading = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "temperature" not in st.session_state:
+    st.session_state.temperature = 0.3
 if "search_query" not in st.session_state:
     st.session_state.search_query = ""
 
-if "loading" not in st.session_state:
-    st.session_state.loading = False
+# ---- Sidebar ----
+with st.sidebar:
+    st.title("Customize")
+    st.session_state.username = st.text_input("Your Name", value=st.session_state.username)
+    st.markdown("---")
+    st.session_state.temperature = st.slider(
+        "Creativity (LLM Temperature)",
+        min_value=0.0, max_value=1.0,
+        value=st.session_state.temperature,
+        step=0.05,
+        help="Higher values make the LLM more creative and open-ended."
+    )
+    st.markdown("---")
+    st.session_state.dark_mode = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
 
-# Main input
+# ---- Dark Mode Styling ----
+if st.session_state.dark_mode:
+    st.markdown("""
+        <style>
+            body, .main, .stApp {
+                background-color: #0e1117 !important;
+                color: #FAFAFA !important;
+                transition: background-color 0.6s ease, color 0.6s ease;
+            }
+            .stTextInput > div > div > input {
+                background-color: #262730 !important;
+                color: #FAFAFA !important;
+            }
+            .stButton > button {
+                background-color: #1f77b4 !important;
+                color: white !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+            body, .main, .stApp {
+                background-color: white !important;
+                color: black !important;
+                transition: background-color 0.6s ease, color 0.6s ease;
+            }
+            .stTextInput > div > div > input {
+                background-color: white !important;
+                color: black !important;
+            }
+            .stButton > button {
+                background-color: #0e1117 !important;
+                color: white !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+# ---- Main Title & Greeting ----
+st.markdown("<div class='title'>Medical Diagnostic Device Research</div>", unsafe_allow_html=True)
+
+if st.session_state.username.strip():
+    greeting = f"Hello {st.session_state.username.strip()}, what would you like to search?"
+else:
+    greeting = "What would you like to search?"
+
+st.markdown(f"<div class='subtitle'>{greeting}</div>", unsafe_allow_html=True)
+
+# ---- Search Input ----
 search_query = st.text_input(
     label="",
     value=st.session_state.search_query,
@@ -90,45 +177,73 @@ search_query = st.text_input(
     label_visibility="collapsed"
 )
 
-# Custom button via HTML that triggers search
-# We use a form and button with id and JS to trigger Streamlit callback
+# ---- Custom Flip Button ----
+clicked = st.button(
+    label="", 
+    key="search_btn", 
+    help="Click to search",
+    args=None,
+    kwargs=None
+)
+
+# Render flip button using markdown and a bit of hack:
+# We can't directly embed complex HTML inside st.button,
+# so we simulate the style and use st.button for actual clicks.
+# We'll overlay the CSS styles onto the real button using st.markdown with 'for' label targeting.
+
+# Trick: style the real button after rendering
 st.markdown("""
-<form id="searchForm">
-  <button type="submit" class="btn-12">
-    <span>Search</span><span>Search</span>
-  </button>
-</form>
-<script>
-const form = window.parent.document.querySelector('#searchForm');
-form.addEventListener('submit', e => {
-    e.preventDefault();
-    const input = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-    if(input){
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    // Trigger Streamlit rerun by clicking the hidden button below
-    const hiddenBtn = window.parent.document.querySelector('#hiddenSearchBtn');
-    if(hiddenBtn){
-      hiddenBtn.click();
-    }
-});
-</script>
+<style>
+div[role="button"][data-testid="stButton"] > button {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  width: 130px !important;
+  height: 40px !important;
+  cursor: pointer !important;
+  perspective: 600px;
+  position: relative;
+  outline: none !important;
+}
+div[role="button"][data-testid="stButton"] > button > span {
+  display: block !important;
+  position: relative !important;
+  width: 130px !important;
+  height: 40px !important;
+  text-align: center !important;
+  transition: transform 0.6s !important;
+  transform-style: preserve-3d !important;
+  border-radius: 5px !important;
+  box-shadow:
+    inset 2px 2px 2px 0px rgba(255,255,255,0.5),
+    7px 7px 20px 0px rgba(0,0,0,0.1),
+    4px 4px 5px 0px rgba(0,0,0,0.1) !important;
+  background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%) !important;
+  color: white !important;
+  line-height: 40px !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  user-select: none !important;
+}
+div[role="button"][data-testid="stButton"]:hover > button > span {
+  transform: rotateX(90deg) !important;
+  background: linear-gradient(0deg, rgba(14,17,23,1) 0%, rgba(14,17,23,1) 100%) !important;
+  color: transparent !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
-# Hidden real button to trigger Streamlit rerun when custom button clicked
-search_button = st.button("hidden_search_button", key="hiddenSearchBtn", label_visibility="collapsed")
-
-# Logic for starting loading on button press
-if search_button and search_query.strip():
+# ---- Search Logic ----
+if clicked and search_query.strip():
     st.session_state.loading = True
     st.session_state.search_query = search_query.strip()
 
-# Loading animation and steps
+# ---- Loading State ----
 if st.session_state.loading:
     loader_area = st.empty()
     message_area = st.empty()
 
-    loader_area.markdown('<div style="margin: 20px auto; width:50px; height:50px; border:6px solid #f3f3f3; border-top:6px solid #3498db; border-radius:50%; animation:spin 1s linear infinite;"></div>', unsafe_allow_html=True)
+    loader_area.markdown('<div class="loader"></div>', unsafe_allow_html=True)
 
     steps = [
         "Creating subqueries from your query...",
@@ -140,20 +255,13 @@ if st.session_state.loading:
     ]
 
     for step in steps:
-        message_area.markdown(f"<p style='text-align:center; font-size:1.05rem;'>{step}</p>", unsafe_allow_html=True)
-        time.sleep(1)
+        message_area.markdown(
+            f"<p style='text-align:center; font-size:1.05rem;'>{step}</p>",
+            unsafe_allow_html=True
+        )
+        time.sleep(1.1)
 
     loader_area.empty()
     message_area.empty()
     st.success(f"Results for: **{st.session_state.search_query}**")
     st.session_state.loading = False
-
-# CSS for loader spin animation
-st.markdown("""
-<style>
-@keyframes spin {
-  0% { transform: rotate(0deg);}
-  100% { transform: rotate(360deg);}
-}
-</style>
-""", unsafe_allow_html=True)
