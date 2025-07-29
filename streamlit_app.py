@@ -69,21 +69,25 @@ if "loading" not in st.session_state:
     st.session_state.loading = False
 if "username" not in st.session_state:
     st.session_state.username = ""
+if "temperature" not in st.session_state:
+    st.session_state.temperature = 0.3
 
 # ---- Sidebar Customization ----
 with st.sidebar:
-    st.title("🔧 Customize Interface")
+    st.title("🎛 Customize")
 
     st.session_state.username = st.text_input("Your Name", value=st.session_state.username)
-    
+
     st.markdown("---")
 
-    st.markdown("**Search Filters**")
-    research_type = st.radio("Research Type", ["All", "Clinical Trials", "Review Articles", "Case Studies"])
-    start_date = st.date_input("Published After", datetime.date(2018, 1, 1))
-    end_date = st.date_input("Published Before", datetime.date.today())
-    tags = st.multiselect("Tags", ["biosensor", "wearable", "AI diagnostics", "microfluidics", "COVID-19"])
-    min_score = st.slider("Min. Relevance Score", 0.0, 1.0, 0.5)
+    # Temperature Control
+    st.session_state.temperature = st.slider(
+        "🎨 Creativity (LLM Temperature)",
+        min_value=0.0, max_value=1.0,
+        value=st.session_state.temperature,
+        step=0.05,
+        help="Higher values make the LLM more creative and open-ended."
+    )
 
     st.markdown("---")
 
