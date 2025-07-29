@@ -68,11 +68,11 @@ with st.sidebar:
     st.markdown("---")
 
     st.session_state.temperature = st.slider(
-        "Creativity (LLM Temperature)",
+        "Multi-Query Creativity (LLM Temperature)",
         min_value=0.0, max_value=1.0,
         value=st.session_state.temperature,
         step=0.05,
-        help="Higher values make the LLM more creative and open-ended."
+        help="Higher values make the LLM generating subqueries more creative and open-ended."
     )
 
     st.markdown("---")
