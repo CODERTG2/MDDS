@@ -71,6 +71,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ---- Sidebar ----
+with st.sidebar:
+    st.title("Customize")
+    username = st.text_input("Your Name", value=st.session_state.username)
+    if username != st.session_state.username:
+        st.session_state.username = username
+    temp = st.slider("Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05)
+    if temp != st.session_state.temperature:
+        st.session_state.temperature = temp
+    toggle = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
+    if toggle != st.session_state.dark_mode:
+        st.session_state.dark_mode = toggle
+        st.experimental_rerun()
+    if st.button("🧹 Clear Chat"):
+        st.session_state.search_query = ""
+        st.session_state.result_shown = False
+        st.session_state.loading = False
+
 # ---- Dark Mode Styling ----
 if st.session_state.dark_mode:
     st.markdown("""
@@ -102,21 +120,6 @@ else:
             }
         </style>
     """, unsafe_allow_html=True)
-
-# ---- Sidebar ----
-with st.sidebar:
-    st.title("Customize")
-    username = st.text_input("Your Name", value=st.session_state.username)
-    if username != st.session_state.username:
-        st.session_state.username = username
-    temp = st.slider("Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05)
-    if temp != st.session_state.temperature:
-        st.session_state.temperature = temp
-    st.session_state.dark_mode = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
-    if st.button("🧹 Clear Chat"):
-        st.session_state.search_query = ""
-        st.session_state.result_shown = False
-        st.session_state.loading = False
 
 st.markdown("<div class='title'>Medical Diagnostic Device Research</div>", unsafe_allow_html=True)
 
