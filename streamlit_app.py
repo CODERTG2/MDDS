@@ -1,6 +1,6 @@
 import streamlit as st
 
-# --- Custom CSS for styling the page ---
+# --- Custom CSS for styling the page ----
 st.markdown(
     """
     <style>
