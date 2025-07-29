@@ -36,17 +36,20 @@ else:
 st.markdown(
     f"""
     <style>
-    .stApp {{
+    html, body, .stApp {{
+        height: 100%;
+        margin: 0;
+        padding: 0;
         background: {background};
-        height: 100vh;
+        transition: background 0.5s ease-in-out;
         display: flex;
         justify-content: center;
         align-items: center;
     }}
 
     .block-container {{
-        padding-top: 0rem;
-        padding-bottom: 0rem;
+        padding: 0;
+        margin: 0;
     }}
 
     .main-container {{
@@ -56,7 +59,11 @@ st.markdown(
         box-shadow: 0 10px 30px rgba(0,0,0,0.12);
         width: 100%;
         max-width: 600px;
-        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: background-color 0.5s ease-in-out;
     }}
 
     .search-box > div > div > input {{
@@ -67,6 +74,7 @@ st.markdown(
         border: 2px solid {input_border} !important;
         color: {'#ffffff' if st.session_state.dark_mode else '#000000'} !important;
         background-color: {'#2c2c2c' if st.session_state.dark_mode else 'white'} !important;
+        transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
     }}
 
     .search-box > div > div > input:focus {{
@@ -84,7 +92,7 @@ st.markdown(
         border: none;
         font-size: 1.1rem;
         cursor: pointer;
-        margin-top: 1rem;
+        margin-top: 1.5rem;
         transition: background-color 0.3s ease;
     }}
 
@@ -97,6 +105,8 @@ st.markdown(
         font-weight: 700;
         color: {text_color};
         margin-bottom: 1rem;
+        text-align: center;
+        transition: color 0.5s ease-in-out;
     }}
 
     .subtitle {{
@@ -104,6 +114,8 @@ st.markdown(
         color: {subtext_color};
         margin-bottom: 2rem;
         font-style: italic;
+        text-align: center;
+        transition: color 0.5s ease-in-out;
     }}
 
     .loader {{
@@ -126,11 +138,14 @@ st.markdown(
 )
 
 def main():
+    # Center wrapper
     st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
+    # Title & Subtitle
     st.markdown('<div class="title">Medical Diagnostic Device Research</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Search the latest research and insights</div>', unsafe_allow_html=True)
 
+    # Search input
     search_query = st.text_input(
         label="Enter your search term...",
         key="search",
@@ -138,23 +153,23 @@ def main():
         placeholder="E.g., point-of-care diagnostics, biosensors"
     )
 
+    # Initialize loading state
     if "loading" not in st.session_state:
         st.session_state.loading = False
 
+    # Button
     if st.button("Search"):
         if search_query.strip() == "":
             st.warning("Please enter a search term to proceed.")
         else:
             st.session_state.loading = True
 
+    # Loading logic
     if st.session_state.loading:
         with st.spinner("Running Multi-Query RAG..."):
-            # Spinner icon
             st.markdown('<div class="loader"></div>', unsafe_allow_html=True)
 
-            # Step-by-step message area
             status_area = st.empty()
-
             steps = [
                 "🔍 Creating subqueries from your query...",
                 "📚 Searching vector DB for each subquery...",
@@ -165,7 +180,10 @@ def main():
             ]
 
             for step in steps:
-                status_area.markdown(f"<p style='font-size:1.05rem; color:{subtext_color};'>{step}</p>", unsafe_allow_html=True)
+                status_area.markdown(
+                    f"<p style='font-size:1.05rem; color:{subtext_color}; text-align:center;'>{step}</p>",
+                    unsafe_allow_html=True
+                )
                 time.sleep(1.1)
 
             st.success(f"Results for: **{search_query}**")
