@@ -161,26 +161,29 @@ def main():
             st.session_state.loading = True
 
     if st.session_state.loading:
-        with st.spinner("Running Multi-Query RAG..."):
-            st.markdown('<div class="loader"></div>', unsafe_allow_html=True)
-            status_area = st.empty()
-            steps = [
-                "🔍 Creating subqueries from your query...",
-                "📚 Searching vector DB for each subquery...",
-                "🧠 Running Graph-RAG and collecting related nodes...",
-                "🧵 Feeding context into the LLM...",
-                "🔗 Cross-checking intersections between retrieved articles...",
-                "📊 Ranking by match count and semantic relevance..."
-            ]
+        loader_container = st.empty()
+        status_area = st.empty()
 
-            for step in steps:
-                status_area.markdown(
-                    f"<p style='font-size:1.05rem; color:{subtext_color}; text-align:center;'>{step}</p>",
-                    unsafe_allow_html=True
-                )
-                time.sleep(1.1)
+        loader_container.markdown('<div class="loader"></div>', unsafe_allow_html=True)
 
-        # Show final results
+        steps = [
+            "🔍 Creating subqueries from your query...",
+            "📚 Searching vector DB for each subquery...",
+            "🧠 Running Graph-RAG and collecting related nodes...",
+            "🧵 Feeding context into the LLM...",
+            "🔗 Cross-checking intersections between retrieved articles...",
+            "📊 Ranking by match count and semantic relevance..."
+        ]
+
+        for step in steps:
+            status_area.markdown(
+                f"<p style='font-size:1.05rem; color:{subtext_color}; text-align:center;'>{step}</p>",
+                unsafe_allow_html=True
+            )
+            time.sleep(1.1)
+
+        loader_container.empty()  # Stop spinning loader
+        status_area.empty()       # Clear last status message
         st.success(f"✅ Results for: **{search_query}**")
         st.session_state.loading = False
 
