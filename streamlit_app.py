@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from main import normal_search, deep_search
 
 st.set_page_config(
     page_title="Medical Diagnostic Device Research",
@@ -226,7 +227,11 @@ if submitted and st.session_state.search_query.strip():
     loader_area.empty()
     message_area.empty()
 
-    result = f"🔍 [Mock result] Replace with actual search result from `main.normal_search()`\nDeep Search: {'ON' if st.session_state.deep_search else 'OFF'}"
+    if st.session_state.deep_search:
+        result = deep_search(st.session_state.search_query, st.session_state.temperature)
+    else:
+        result = normal_search(st.session_state.search_query, st.session_state.temperature)
+    
     st.session_state.search_result = result
     st.session_state.loading = False
     st.session_state.result_shown = True
