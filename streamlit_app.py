@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from main import normal_search  # Make sure main.py is in the same directory or adjust the path
+#from main import normal_search  # Make sure main.py is in the same directory or adjust the path
 
 st.set_page_config(
     page_title="Medical Diagnostic Device Research",
@@ -155,7 +155,7 @@ if submitted and st.session_state.search_query.strip():
     message_area.empty()
 
     # --- Call search function from main.py ---
-    result = normal_search(st.session_state.search_query)
+    # result = normal_search(st.session_state.search_query)
 
     st.session_state.search_result = result
     st.session_state.loading = False
