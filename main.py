@@ -6,7 +6,6 @@ from ContextRetrieval import ContextRetrieval
 from Ranking import ranking
 from openai import AzureOpenAI
 from dotenv import load_dotenv
-import os
 import json
 import networkx as nx
 from CacheDB import CacheDB
@@ -38,7 +37,7 @@ G = nx.read_gexf("knowledge_graph(3).gexf")
 
 connect(host=st.secrets["MONGO_URI"])
 
-def normal_search(input_query: str, temp: float):
+def normal_search(input_query: str, temp=0.5):
     if CacheHit(input_query, model) is not False:
         return CacheHit(input_query, model)
 
