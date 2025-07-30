@@ -109,7 +109,7 @@ Answer:"""
     
     return answer
     
-# result = normal_search("What are some glucose monitoring devices for athletes?")
+# result = normal_search("What is the best sugar monitoring device?")
 # print(result)
 
 def deep_search(input_query: str):
@@ -141,11 +141,11 @@ def deep_search(input_query: str):
         
         formatted_context += f"[{i}] Metadata: {metadata_str}\nContent: {content}\n\n"
 
-        prompt = f"""
+    prompt = f"""
 You are a helpful AI assistant. Use the provided context to answer the user's question accurately and comprehensively.
 
 Context:
-{final_context}
+{formatted_context}
 
 Question: {input_query}
 
@@ -175,5 +175,5 @@ Answer:"""
     
     return answer
 
-# result = deep_search("What are some glucose monitoring devices for athletes?")
+# result = deep_search("What is the best sugar monitoring device?")
 # print(result)
