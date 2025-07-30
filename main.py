@@ -37,7 +37,7 @@ G = nx.read_gexf("knowledge_graph(3).gexf")
 
 connect(host=os.getenv("MONGO_URI"))
 
-def normal_search(input_query: str):
+def normal_search(input_query: str, temp: float):
     if CacheHit(input_query, model) is not False:
         return CacheHit(input_query, model)
 
@@ -96,7 +96,7 @@ Answer:"""
             {"role": "system", "content": "You are an expert in literature review for medical diagnostics devices."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.5
+        temperature=temp
     )
     
     answer = response.choices[0].message.content.strip()
@@ -112,7 +112,7 @@ Answer:"""
 # result = normal_search("What is the best sugar monitoring device?")
 # print(result)
 
-def deep_search(input_query: str):
+def deep_search(input_query: str, temp: float):
     user_query = UserQuery(input_query, client, deployment)
     subqueries = user_query.multi_query()
     full_context = []
@@ -162,7 +162,7 @@ Answer:"""
             {"role": "system", "content": "You are an expert in literature review for medical diagnostics devices."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.5
+        temperature= temp
     )
     
     answer = response.choices[0].message.content.strip()
