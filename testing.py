@@ -1,208 +1,156 @@
-import os
-import tempfile
-import pandas as pd
-from dotenv import load_dotenv
+from bert_score import score as bert_score
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.util import ngrams
+from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
 
-# Fix temp directory issue before importing ragas
-temp_dir = "/Users/tanmayshubhgarg/Documents/Projects/DePaulProject/temp"
-os.makedirs(temp_dir, exist_ok=True)
-os.environ['TMPDIR'] = temp_dir
+nltk.download('punkt')
 
-from langchain_community.document_loaders import DirectoryLoader
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+from main import normal_search
 
-# Import RAGAS components
-try:
-    from ragas.testset import TestsetGenerator
-    from ragas.testset.evolutions import simple, reasoning, multi_context
-except ImportError:
+test_set = [
+    {
+        "question": "What is the primary purpose of the Mobile Device Interface (MDI)?",
+        "answer": "The MDI enables electrochemical diagnostic tests by integrating a potentiostat, microcontroller, and Bluetooth module with a mobile device. It allows for point-of-care and remote medical diagnostics by leveraging mobile device capabilities like display, computation, and connectivity"
+    },
+    {
+        "question": "What types of medical diagnostics can electrochemical techniques support?",
+        "answer": "Electrochemical techniques can support diagnostics for conditions such as cancer, cardiovascular diseases, and antibiotic susceptibility, using characteristic redox reactions of biochemical samples"
+    },
+    {
+        "question": "How does the Cyclic Voltammetry (CV) method work in the MDI system?",
+        "answer": "CV applies a triangular voltage waveform across three electrodes in a biochemical sample. The resulting current response is analyzed for characteristic redox peaks, which are used to identify chemical properties relevant for diagnostics"
+    },
+    {
+        "question": "What hardware components make up the potentiostat interface in the MDI system?",
+        "answer": "The interface includes a potentiostat module, a TI MSP430 microcontroller, a Panasonic CC2560 Bluetooth module, a power source (battery), and test electrode connectors"
+    },
+    {
+        "question": "Why is vibration diagnostics critical for the International Linear Collider (ILC)?",
+        "answer": "Achieving nanometer-scale beam sizes and precise alignment of accelerator components is essential for ILC’s high luminosity. Vibration diagnostics help maintain static and dynamic alignment, minimizing emittance degradation and beam jitter"
+    },
+    {
+        "question": "What are some of the sensor technologies used for vibration diagnostics in the ILC cryomodules?",
+        "answer": "Technologies include piezoelectric accelerometers, geophones, Wire Position Monitors (WPM), and interferometric displacement sensors. Each has strengths and limitations in terms of frequency sensitivity, cryogenic compatibility, and resolution"
+    },
+    {
+        "question": "What limitations were observed with piezoelectric accelerometers in cryogenic environments at the ILC?",
+        "answer": "Piezoelectric accelerometers lose sensitivity when cooled to cryogenic temperatures (e.g., 4.5 K), making them insufficiently sensitive for low-frequency (1–10 Hz) diagnostics in the linac. Their resolution is limited to the micro-g level"
+    },
+    {
+        "question": "What diagnostic improvements were proposed for the Final Doublet (FD) region in the ILC?",
+        "answer": "Proposed diagnostics for the FD region include electrochemical seismometers (MET-based), laser interferometry for displacement measurement, and non-contact position sensors like core-less LVDTs, which are effective in high-magnetic, cryogenic, and radiation-rich environments"
+    },
+    {
+        "question": "What role does the Android application play in the MDI system?",
+        "answer": "The Android app handles user input for scan settings, manages Bluetooth communications, plots electrochemical results, and stores data in CSV format. It serves as the user interface and processing hub for diagnostic tests"
+    },
+    {
+        "question": "What were the results when validating the MDI system against a commercial potentiostat (CHI 1200B)?",
+        "answer": "The MDI system showed peak potentials of 0.30 V and 0.13 V compared to 0.28 V and 0.18 V from the commercial device, with errors of 7.14% and 27.78%. The trends matched well, validating the MDI as a functional prototype despite minor inaccuracies"
+    }
+]
+
+results = []
+for item in test_set:
+    question = item["question"]
+    print(f"\n🔍 Testing question: {question}")
     try:
-        from ragas import TestsetGenerator
-        from ragas.testset import simple, reasoning, multi_context
-    except ImportError:
-        print("❌ RAGAS import failed. Please install: pip install ragas")
-        exit(1)
+        answer = normal_search(question)
+        print(f"✅ Answer: {answer}\n")
+        results.append({"question": question, "answer": answer})
+    except Exception as e:
+        print(f"❌ Error for question: {question}\n{e}")
 
-# Load environment variables
-load_dotenv()
+# Metrics for RAG evaluation
+def exact_match(pred, ref):
+    return int(pred.strip().lower() == ref.strip().lower())
 
-# --- 1. Set up your environment ---
-# Make sure to set your Azure OpenAI API key in .env file
+def f1_score(pred, ref):
+    pred_tokens = word_tokenize(pred.lower())
+    ref_tokens = word_tokenize(ref.lower())
+    common = set(pred_tokens) & set(ref_tokens)
+    if not common:
+        return 0.0
+    precision = len(common) / len(pred_tokens)
+    recall = len(common) / len(ref_tokens)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * (precision * recall) / (precision + recall)
 
-# --- 2. Load your documents ---
-# Check if papersfortesting directory exists and has proper files
-papers_dir = "./papersfortesting/"
-
-if not os.path.exists(papers_dir):
-    print(f"❌ Directory {papers_dir} not found. Creating dummy document.")
-    from langchain_core.documents import Document
-    documents = [Document(
-        page_content="Medical devices are regulated by the FDA to ensure safety and efficacy. "
-                   "Blood glucose monitors help diabetic patients track their blood sugar levels. "
-                   "These devices must undergo rigorous testing before market approval.",
-        metadata={"source": "dummy_medical_device_info.txt"}
-    )]
-else:
-    # Check for valid document files
-    valid_extensions = ['.pdf', '.txt', '.docx', '.md']
-    files = [f for f in os.listdir(papers_dir) 
-             if any(f.lower().endswith(ext) for ext in valid_extensions)]
-    
-    if not files:
-        print(f"❌ No valid documents found in {papers_dir}")
-        print("📄 Creating dummy medical device document for testing.")
-        from langchain_core.documents import Document
-        documents = [Document(
-            page_content="Medical devices are regulated by the FDA to ensure safety and efficacy. "
-                       "Blood glucose monitors help diabetic patients track their blood sugar levels. "
-                       "These devices must undergo rigorous testing before market approval. "
-                       "Continuous glucose monitors provide real-time glucose readings. "
-                       "Machine learning algorithms are increasingly used in diagnostic devices.",
-            metadata={"source": "dummy_medical_device_info.txt"}
-        )]
-    else:
-        print(f"✅ Found {len(files)} documents in {papers_dir}")
-        try:
-            loader = DirectoryLoader(
-                papers_dir,
-                glob="**/*",
-                use_multithreading=True,
-                silent_errors=True,
-                sample_size=3  # Limit to 3 documents for testing
-            )
-            documents = loader.load()
-            
-            if not documents:
-                print("❌ Failed to load documents. Using dummy document.")
-                from langchain_core.documents import Document
-                documents = [Document(
-                    page_content="Medical devices are regulated by the FDA to ensure safety and efficacy. "
-                               "Blood glucose monitors help diabetic patients track their blood sugar levels.",
-                    metadata={"source": "dummy_medical_device_info.txt"}
-                )]
+def rouge_l(pred, ref):
+    pred_tokens = word_tokenize(pred.lower())
+    ref_tokens = word_tokenize(ref.lower())
+    # Longest Common Subsequence
+    m, n = len(pred_tokens), len(ref_tokens)
+    dp = [[0]*(n+1) for _ in range(m+1)]
+    for i in range(m):
+        for j in range(n):
+            if pred_tokens[i] == ref_tokens[j]:
+                dp[i+1][j+1] = dp[i][j] + 1
             else:
-                print(f"✅ Successfully loaded {len(documents)} documents")
-                # Add proper metadata
-                for doc in documents:
-                    if "source" in doc.metadata:
-                        doc.metadata["filename"] = os.path.basename(doc.metadata["source"])
-                        
-        except Exception as e:
-            print(f"❌ Error loading documents: {e}")
-            print("📄 Creating dummy document for demonstration.")
-            from langchain_core.documents import Document
-            documents = [Document(
-                page_content="Medical devices are regulated by the FDA to ensure safety and efficacy. "
-                           "Blood glucose monitors help diabetic patients track their blood sugar levels.",
-                metadata={"source": "dummy_medical_device_info.txt"}
-            )]
+                dp[i+1][j+1] = max(dp[i][j+1], dp[i+1][j])
+    lcs = dp[m][n]
+    if m == 0 or n == 0:
+        return 0.0
+    prec = lcs / m
+    rec = lcs / n
+    if prec + rec == 0:
+        return 0.0
+    return 2 * prec * rec / (prec + rec)
+
+def semantic_similarity(pred, ref, model):
+    emb_pred = model.encode([pred])[0].reshape(1, -1)
+    emb_ref = model.encode([ref])[0].reshape(1, -1)
+    return float(cosine_similarity(emb_pred, emb_ref)[0][0])
+
+# Load sentence transformer for semantic similarity
+semantic_model = SentenceTransformer('pritamdeka/S-BioBert-snli-multinli-stsb', device='cpu')
+
+em_scores, f1_scores, rouge_scores, sem_scores = [], [], [], []
+for item, result in zip(test_set, results):
+    ref = item["answer"]
+    pred = result["answer"]
+    em = exact_match(pred, ref)
+    f1 = f1_score(pred, ref)
+    rouge = rouge_l(pred, ref)
+    sem = semantic_similarity(pred, ref, semantic_model)
+    em_scores.append(em)
+    f1_scores.append(f1)
+    rouge_scores.append(rouge)
+    sem_scores.append(sem)
+    print(f"Question: {item['question']}")
+    print(f"Expected: {ref}")
+    print(f"Actual:   {pred}")
+    print(f"Exact Match: {em}, F1: {f1:.2f}, ROUGE-L: {rouge:.2f}, Semantic: {sem:.2f}\n")
 
 
-# --- 3. Initialize Azure OpenAI Models ---
-# Using Azure OpenAI instead of regular OpenAI to match your project setup
-try:
-    generator_llm = AzureChatOpenAI(
-        azure_endpoint="https://aoai-camp.openai.azure.com/",
-        api_version="2024-12-01-preview",
-        deployment_name="abbott_researcher",  # Your deployment name
-        api_key=os.getenv("AZURE_OPEN_AI_KEY"),
-        temperature=0.1
-    )
-    
-    critic_llm = AzureChatOpenAI(
-        azure_endpoint="https://aoai-camp.openai.azure.com/",
-        api_version="2024-12-01-preview",
-        deployment_name="abbott_researcher",  # Your deployment name
-        api_key=os.getenv("AZURE_OPEN_AI_KEY"),
-        temperature=0.1
-    )
-    
-    embeddings = AzureOpenAIEmbeddings(
-        azure_endpoint="https://aoai-camp.openai.azure.com/",
-        api_version="2024-12-01-preview", 
-        deployment="text-embedding-ada-002",  # Your embedding deployment
-        api_key=os.getenv("AZURE_OPEN_AI_KEY")
-    )
-    
-    print("✅ Azure OpenAI models initialized successfully")
-    
-except Exception as e:
-    print(f"❌ Error initializing Azure OpenAI models: {e}")
-    print("Please check your .env file contains AZURE_OPEN_AI_KEY")
-    exit(1)
+bert_scores = []
+for item, result in zip(test_set, results):
+    ref = item["answer"]
+    pred = result["answer"]
+    em = exact_match(pred, ref)
+    f1 = f1_score(pred, ref)
+    rouge = rouge_l(pred, ref)
+    sem = semantic_similarity(pred, ref, semantic_model)
+    # BERTScore (using default model)
+    P, R, F1 = bert_score([pred], [ref], lang="en", rescale_with_baseline=True)
+    bert_f1 = F1[0].item()
+    bert_scores.append(bert_f1)
+    em_scores.append(em)
+    f1_scores.append(f1)
+    rouge_scores.append(rouge)
+    sem_scores.append(sem)
+    print(f"Question: {item['question']}")
+    print(f"Expected: {ref}")
+    print(f"Actual:   {pred}")
+    print(f"Exact Match: {em}, F1: {f1:.2f}, ROUGE-L: {rouge:.2f}, Semantic: {sem:.2f}, BERTScore F1: {bert_f1:.2f}\n")
 
-# --- 4. Create the TestsetGenerator ---
-# The TestsetGenerator is the main class for creating your test data.
-try:
-    generator = TestsetGenerator.from_langchain(
-        generator_llm,
-        critic_llm,
-        embeddings
-    )
-    print("✅ TestsetGenerator initialized successfully")
-except Exception as e:
-    print(f"❌ Error creating TestsetGenerator: {e}")
-    exit(1)
 
-# --- 5. Generate the Test Set ---
-# Here, we specify the number of questions to generate (test_size=5 for testing).
-# We also define the distribution of question types we want.
-print("🔄 Generating test set... This may take a few minutes.")
-
-try:
-    testset = generator.generate_with_langchain_docs(
-        documents,
-        test_size=5,  # Start with 5 questions for testing
-        raise_exceptions=False,
-        with_debugging_logs=True,
-        distributions={
-            simple: 0.5,      # 50% simple questions
-            reasoning: 0.25,  # 25% reasoning questions
-            multi_context: 0.25 # 25% multi-context questions
-        }
-    )
-    print(f"✅ Successfully generated test set with {len(testset)} questions")
-    
-except Exception as e:
-    print(f"❌ Error generating test set: {e}")
-    import traceback
-    traceback.print_exc()
-    exit(1)
-
-# --- 6. View and save the generated test set ---
-try:
-    # The generated test set can be easily converted to a pandas DataFrame.
-    df = testset.to_pandas()
-
-    # Display the full content of the DataFrame
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', 100)  # Limit column width for readability
-
-    print("\n" + "="*80)
-    print("GENERATED TEST SET")
-    print("="*80)
-    print(df.head())
-
-    # Save to CSV file
-    output_file = "medical_device_test_set.csv"
-    df.to_csv(output_file, index=False)
-    print(f"\n✅ Test set successfully generated and saved to {output_file}")
-    
-    # Print summary
-    print(f"\n📊 SUMMARY:")
-    print(f"   - Total questions: {len(df)}")
-    print(f"   - Document sources: {len(documents)}")
-    print(f"   - Output file: {output_file}")
-    
-    if len(df) > 0:
-        print(f"\n🔍 SAMPLE QUESTION:")
-        print(f"   Q: {df.iloc[0]['question'][:100]}...")
-        print(f"   A: {df.iloc[0]['answer'][:100]}...")
-
-except Exception as e:
-    print(f"❌ Error processing test set: {e}")
-    import traceback
-    traceback.print_exc()
-
+print(f"\n=== METRIC SUMMARY ===")
+print(f"Exact Match: {sum(em_scores)}/{len(em_scores)}")
+print(f"F1 Score (avg): {sum(f1_scores)/len(f1_scores):.2f}")
+print(f"ROUGE-L (avg): {sum(rouge_scores)/len(rouge_scores):.2f}")
+print(f"Semantic Similarity (avg): {sum(sem_scores)/len(sem_scores):.2f}")
+print(f"BERTScore F1 (avg): {sum(bert_scores)/len(bert_scores):.2f}")

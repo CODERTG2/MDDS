@@ -28,7 +28,7 @@ class UserQuery:
                 {"role": "system", "content": "You are an expert in breaking down complex medical device queries into simpler subqueries."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.5
+            temperature= 0.5
         )
         output = response.choices[0].message.content
         self.multi_queries = output.split('\n')
