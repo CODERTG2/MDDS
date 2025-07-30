@@ -12,6 +12,7 @@ from CacheDB import CacheDB
 from DeepSearch import DeepSearch
 from mongoengine import connect
 import streamlit as st
+from ScholarLink import ScholarLink
 
 model = SentenceTransformer('pritamdeka/S-BioBert-snli-multinli-stsb', device='cpu')
 
@@ -84,7 +85,7 @@ Disclaimer: {disclaimer}
 Instructions:
 - Base your answer primarily on the provided context
 - Prioritize the most relevant and recent information. The context is sorted by relevance where the most relevant information appears first.
-- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata.
+- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata after saying 'Sources'. Put the disclaimer before the sources.
 - If the context doesn't contain enough information, state this clearly
 - Provide a clear, well-structured answer
 - If there is a disclaimer, mention it in your answer.
@@ -101,12 +102,20 @@ Answer:"""
     
     answer = response.choices[0].message.content.strip()
 
+    links = ScholarLink(answer).extract_scholar_links()
+    print(links)
+    counter = 1
+    for link in links:
+        answer += f"\n\n [{counter}] {link}"
+        counter += 1
+    print(answer)
+
     CacheDB(
         query=input_query,
         answer=answer,
         tag="normal"
     ).save()
-    
+
     return answer
     
 # result = normal_search("What is the best sugar monitoring device?")
@@ -152,7 +161,7 @@ Question: {input_query}
 Instructions:
 - Base your answer primarily on the provided context
 - Prioritize the most relevant and recent information. The context is sorted by relevance where the most relevant information appears first.
-- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata.
+- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata after saying 'Sources'. Put the disclaimer before the sources.
 - Provide a clear, well-structured answer
 
 Answer:"""
@@ -167,6 +176,12 @@ Answer:"""
     
     answer = response.choices[0].message.content.strip()
 
+    links = ScholarLink(answer).extract_scholar_links()
+    counter = 1
+    for link in links:
+        answer += f"\n\n [{counter}] {link}"
+        counter += 1
+    
     CacheDB(
         query=input_query,
         answer=answer,
@@ -177,3 +192,4 @@ Answer:"""
 
 # result = deep_search("What is the best sugar monitoring device?")
 # print(result)
+
