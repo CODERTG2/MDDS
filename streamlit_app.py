@@ -168,7 +168,16 @@ with st.sidebar:
     if temp != st.session_state.temperature:
         st.session_state.temperature = temp
 
-    dark_toggle = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
+    dark_mode_label = "Dark Mode"
+    dark_toggle = st.checkbox(dark_mode_label, value=st.session_state.dark_mode)
+    if st.session_state.dark_mode:
+        st.markdown("""
+        <style>
+        div[data-testid="stSidebar"] label[for="dark_mode"] {
+            color: white !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
     if dark_toggle != st.session_state.dark_mode:
         st.session_state.dark_mode = dark_toggle
         st.rerun()
