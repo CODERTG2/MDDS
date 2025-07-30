@@ -155,7 +155,7 @@ if submitted and st.session_state.search_query.strip():
     message_area.empty()
 
     # --- Call search function from main.py ---
-    result = normal_search(st.session_state.search_query, st.session_state.temperature)
+    result = normal_search(st.session_state.search_query)
 
     st.session_state.search_result = result
     st.session_state.loading = False
