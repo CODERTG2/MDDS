@@ -178,6 +178,18 @@ if st.session_state.dark_mode:
             /* Fix success messages */
             .stAlert, .stSuccess, .stInfo {
                 color: #FAFAFA !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            /* Force success message brightness */
+            .stAlert *, .stSuccess *, .stInfo * {
+                color: #FAFAFA !important;
+                opacity: 1 !important;
+            }
+            /* Fix success message backgrounds */
+            .stSuccess {
+                background-color: rgba(40, 167, 69, 0.2) !important;
+                border: 1px solid #28a745 !important;
             }
             /* Fix code blocks */
             code, pre {
@@ -239,6 +251,18 @@ else:
             /* Fix success messages */
             .stAlert, .stSuccess, .stInfo {
                 color: #333333 !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            /* Force success message brightness */
+            .stAlert *, .stSuccess *, .stInfo * {
+                color: #333333 !important;
+                opacity: 1 !important;
+            }
+            /* Fix success message backgrounds */
+            .stSuccess {
+                background-color: rgba(40, 167, 69, 0.1) !important;
+                border: 1px solid #28a745 !important;
             }
             /* Fix code blocks */
             code, pre {
@@ -408,11 +432,43 @@ st.markdown("""
         opacity: 1 !important;
         visibility: visible !important;
     }
+    /* Prevent any focus/blur dimming effects */
+    .stApp, .main, .block-container {
+        opacity: 1 !important;
+        filter: none !important;
+    }
+    /* Keep results section always bright */
+    [data-testid="stAlert"], [data-testid="stSuccess"] {
+        opacity: 1 !important;
+        filter: none !important;
+    }
+    /* Override any Streamlit dimming classes */
+    .css-1d391kg, .css-18e3th9, .stMarkdown {
+        opacity: 1 !important;
+        filter: none !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # ---- Display Result with Typing Animation ----
 if st.session_state.result_shown and st.session_state.search_result and not submitted:
+    # Force bright styling on the success message
+    st.markdown("""
+        <style>
+        /* Force success message to stay bright */
+        .stSuccess {
+            opacity: 1 !important;
+            filter: none !important;
+            background-color: rgba(40, 167, 69, 0.1) !important;
+            border: 1px solid #28a745 !important;
+        }
+        .stSuccess * {
+            opacity: 1 !important;
+            filter: none !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.success(f"Results for: **{st.session_state.search_query}**")
     
     # Initialize typing state variables
