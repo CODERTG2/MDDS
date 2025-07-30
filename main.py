@@ -84,7 +84,7 @@ Disclaimer: {disclaimer}
 Instructions:
 - Base your answer primarily on the provided context
 - Prioritize the most relevant and recent information. The context is sorted by relevance where the most relevant information appears first.
-- When using information from the context, cite the source based on the metadata provided.
+- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata.
 - If the context doesn't contain enough information, state this clearly
 - Provide a clear, well-structured answer
 - If there is a disclaimer, mention it in your answer.
@@ -152,7 +152,7 @@ Question: {input_query}
 Instructions:
 - Base your answer primarily on the provided context
 - Prioritize the most relevant and recent information. The context is sorted by relevance where the most relevant information appears first.
-- When using information from the context, cite the source based on the metadata provided.
+- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata.
 - Provide a clear, well-structured answer
 
 Answer:"""
