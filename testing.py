@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 
 nltk.download('punkt')
 
-from main import normal_search
+from main import normal_search, deep_search
 
 test_set = [
     {
@@ -57,7 +57,7 @@ for item in test_set:
     question = item["question"]
     print(f"\n🔍 Testing question: {question}")
     try:
-        answer = normal_search(question)
+        answer = deep_search(question, 0.5)
         print(f"✅ Answer: {answer}\n")
         results.append({"question": question, "answer": answer})
     except Exception as e:
