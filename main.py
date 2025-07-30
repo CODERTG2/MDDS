@@ -12,8 +12,9 @@ import networkx as nx
 from CacheDB import CacheDB
 from DeepSearch import DeepSearch
 from mongoengine import connect
+import streamlit as st
 
-model = SentenceTransformer('./content/sentence_transformer_model', device='cpu')
+model = SentenceTransformer('pritamdeka/S-BioBert-snli-multinli-stsb', device='cpu')
 
 vector_db = faiss.read_index("chunks(1).index")
 
@@ -27,7 +28,7 @@ api_version = "2024-12-01-preview"
 client = AzureOpenAI(
             api_version=api_version,
             azure_endpoint=endpoint,
-            api_key=os.getenv("AZURE_OPEN_AI_KEY")
+            api_key=st.secrets["AZURE_OPEN_AI_KEY"]
 )
 
 with open("chunks_with_entities(1).json", "r") as f:
@@ -35,7 +36,7 @@ with open("chunks_with_entities(1).json", "r") as f:
 
 G = nx.read_gexf("knowledge_graph(3).gexf")
 
-connect(host=os.getenv("MONGO_URI"))
+connect(host=st.secrets["MONGO_URI"])
 
 def normal_search(input_query: str):
     if CacheHit(input_query, model) is not False:
