@@ -1,6 +1,5 @@
 import streamlit as st
 import time
-#from main import normal_search  # Make sure main.py is in the same directory or adjust the path
 
 st.set_page_config(
     page_title="Medical Diagnostic Device Research",
@@ -24,8 +23,10 @@ if "result_shown" not in st.session_state:
     st.session_state.result_shown = False
 if "search_result" not in st.session_state:
     st.session_state.search_result = ""
+if "deep_search" not in st.session_state:
+    st.session_state.deep_search = False
 
-# ---- Title and Greeting ----
+# ---- Title Styling ----
 st.markdown("""
     <style>
     html, body, [class*="css"] {
@@ -60,28 +61,47 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---- Sidebar ----
-with st.sidebar:
-    st.title("Customize")
-    username = st.text_input("Your Name", value=st.session_state.username)
-    if username != st.session_state.username:
-        st.session_state.username = username
-    temp = st.slider("Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05)
-    if temp != st.session_state.temperature:
-        st.session_state.temperature = temp
-
-    if st.checkbox("Dark Mode", value=st.session_state.dark_mode, key="dark_toggle"):
-        st.session_state.dark_mode = True
-    else:
-        st.session_state.dark_mode = False
-
-    if st.button("🧹 Clear Chat"):
-        st.session_state.search_query = ""
-        st.session_state.search_result = ""
-        st.session_state.result_shown = False
-        st.session_state.loading = False
-
 # ---- Dark Mode Styling ----
+st.markdown("""
+    <style>
+    button[data-testid="stButton"], .stButton button {
+        border: 2px solid #444 !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 5px !important;
+        font-size: 0.9rem !important;
+        display: inline-block !important;
+        width: 100% !important;
+        text-align: center !important;
+        background: white !important;
+        color: #222 !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.5rem !important;
+        transition: background 0.3s, color 0.3s;
+    }
+    button[data-testid="stButton"]:hover, .stButton button:hover {
+        background: #444 !important;
+        color: white !important;
+        border-color: #222 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    html, body, [class*="css"], body, .main, .stApp {
+        transition: background-color 0.6s ease, color 0.6s ease;
+    }
+    button[data-testid="stButton"], .stButton button {
+        border: none !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 5px !important;
+        font-size: 0.9rem !important;
+        display: inline-block !important;
+        width: 100% !important;
+        text-align: center !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 if st.session_state.dark_mode:
     st.markdown("""
         <style>
@@ -93,25 +113,70 @@ if st.session_state.dark_mode:
                 background-color: #262730 !important;
                 color: #FAFAFA !important;
             }
-            .sidebar .stButton button, .stButton button {
+            ::placeholder {
+                color: #BBBBBB !important;
+            }
+            .sidebar .stButton button, button[data-testid="stButton"] {
                 background-color: #444 !important;
                 color: white !important;
+            }
+            section[data-testid="stSidebar"], .sidebar-content {
+                background-color: #0e1117 !important;
+                color: #FAFAFA !important;
+            }
+            .stTextInput label, .stSlider label, .stCheckbox label {
+                color: #FAFAFA !important;
             }
         </style>
     """, unsafe_allow_html=True)
 else:
     st.markdown("""
         <style>
+            body, .main, .stApp {
+                background-color: white !important;
+                color: black !important;
+            }
             input, .stTextInput > div > div > input {
                 background-color: white !important;
                 color: black !important;
             }
-            .sidebar .stButton button, .stButton button {
+            ::placeholder {
+                color: #999 !important;
+            }
+            .sidebar .stButton button, button[data-testid="stButton"] {
                 background-color: #f0f0f0 !important;
+                color: black !important;
+            }
+            section[data-testid="stSidebar"], .sidebar-content {
+                background-color: #fafafa !important;
+                color: black !important;
+            }
+            .stTextInput label, .stSlider label, .stCheckbox label {
                 color: black !important;
             }
         </style>
     """, unsafe_allow_html=True)
+
+# ---- Sidebar ----
+with st.sidebar:
+    st.title("Customize")
+    username = st.text_input("Your Name", value=st.session_state.username)
+    if username != st.session_state.username:
+        st.session_state.username = username
+    temp = st.slider("Creativity (LLM Temperature)", 0.0, 1.0, st.session_state.temperature, 0.05)
+    if temp != st.session_state.temperature:
+        st.session_state.temperature = temp
+
+    dark_toggle = st.checkbox("Dark Mode", value=st.session_state.dark_mode)
+    if dark_toggle != st.session_state.dark_mode:
+        st.session_state.dark_mode = dark_toggle
+        st.rerun()
+
+    if st.button("🧹 Clear Chat", key="clear_chat_btn", help="Clear chat", args=None):
+        st.session_state.search_query = ""
+        st.session_state.search_result = ""
+        st.session_state.result_shown = False
+        st.session_state.loading = False
 
 # ---- Title & Greeting ----
 st.markdown("<div class='title'>Medical Diagnostic Device Research</div>", unsafe_allow_html=True)
@@ -128,6 +193,13 @@ with st.form(key="search_form", clear_on_submit=False):
         label_visibility="collapsed"
     )
     submitted = search_col[1].form_submit_button("🔍")
+
+# ---- Deep Search Toggle Button ----
+col_deep = st.columns([1])
+deep_search_label = f"🔎 Deep Search ({'ON' if st.session_state.deep_search else 'OFF'})"
+if col_deep[0].button(deep_search_label, key="deep_search_btn", help="Toggle deep search mode"):
+    st.session_state.deep_search = not st.session_state.deep_search
+    st.rerun()
 
 # ---- Search Action ----
 if submitted and st.session_state.search_query.strip():
@@ -154,9 +226,7 @@ if submitted and st.session_state.search_query.strip():
     loader_area.empty()
     message_area.empty()
 
-    # --- Call search function from main.py ---
-    # result = normal_search(st.session_state.search_query)
-
+    result = f"🔍 [Mock result] Replace with actual search result from `main.normal_search()`\nDeep Search: {'ON' if st.session_state.deep_search else 'OFF'}"
     st.session_state.search_result = result
     st.session_state.loading = False
     st.session_state.result_shown = True
