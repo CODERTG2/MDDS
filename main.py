@@ -10,6 +10,8 @@ import os
 import json
 import networkx as nx
 from CacheDB import CacheDB
+from DeepSearch import DeepSearch
+from mongoengine import connect
 
 model = SentenceTransformer('./content/sentence_transformer_model', device='cpu')
 
@@ -33,6 +35,8 @@ with open("chunks_with_entities(1).json", "r") as f:
 
 G = nx.read_gexf("knowledge_graph(3).gexf")
 
+connect(host=os.getenv("MONGO_URI"))
+
 def normal_search(input_query: str):
     if CacheHit(input_query, model) is not False:
         return CacheHit(input_query, model)
@@ -40,14 +44,20 @@ def normal_search(input_query: str):
     user_query = UserQuery(input_query, client, deployment)
     subqueries = user_query.multi_query()
     full_context = []
+    disclaimers = []
     for subquery in subqueries:
         context, disclaimer = ContextRetrieval(model, G, vector_db, dictionary, subquery).retrieve()
         if disclaimer != "":
-            pass
+            disclaimers.append(disclaimer)
         for con in context:
             full_context.append(con)
-        
-    rankings = ranking(full_context)
+
+    if "" in disclaimers:
+        disclaimer = "No disclaimer"
+    else:
+        disclaimer = disclaimers[0]
+    
+    rankings = ranking(full_context, k=10)
 
     formatted_context = ""
     for i, chunk in enumerate(rankings, 1):
@@ -93,30 +103,34 @@ Answer:"""
 
     CacheDB(
         query=input_query,
-        answer=answer
+        answer=answer,
+        tag="normal"
     ).save()
     
     return answer
     
-result = normal_search("What are some glucose monitoring devices for athletes?")
-print(result)
+# result = normal_search("What are some glucose monitoring devices for athletes?")
+# print(result)
 
 def deep_search(input_query: str):
     user_query = UserQuery(input_query, client, deployment)
     subqueries = user_query.multi_query()
     full_context = []
+
+    deep_searcher = DeepSearch(input_query, model, k_articles=5, k_chunks=7)
+    chunks = deep_searcher.get_context()
+
     for subquery in subqueries:
         context, disclaimer = ContextRetrieval(model, G, vector_db, dictionary, subquery, k=30).retrieve()
-        if disclaimer != "":
-            pass
         for con in context:
             full_context.append(con)
-    
-        
-    rankings = ranking(full_context)
+
+    rankings = ranking(full_context, k=3)
+
+    final_context = chunks + rankings
 
     formatted_context = ""
-    for i, chunk in enumerate(rankings, 1):
+    for i, chunk in enumerate(final_context, 1):
         metadata = chunk["metadata"]
         content = chunk["chunk_text"]
         
@@ -131,19 +145,15 @@ def deep_search(input_query: str):
 You are a helpful AI assistant. Use the provided context to answer the user's question accurately and comprehensively.
 
 Context:
-{formatted_context}
+{final_context}
 
 Question: {input_query}
-
-Disclaimer: {disclaimer}
 
 Instructions:
 - Base your answer primarily on the provided context
 - Prioritize the most relevant and recent information. The context is sorted by relevance where the most relevant information appears first.
 - When using information from the context, cite the source based on the metadata provided.
-- If the context doesn't contain enough information, state this clearly
 - Provide a clear, well-structured answer
-- If there is a disclaimer, mention it in your answer.
 
 Answer:"""
     response = client.chat.completions.create(
@@ -159,7 +169,11 @@ Answer:"""
 
     CacheDB(
         query=input_query,
-        answer=answer
+        answer=answer,
+        tag="deep"
     ).save()
     
     return answer
+
+# result = deep_search("What are some glucose monitoring devices for athletes?")
+# print(result)

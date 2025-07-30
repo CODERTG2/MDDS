@@ -11,7 +11,14 @@ def CacheHit(query: str, model: SentenceTransformer):
     connect(host=os.getenv("MONGO_URI"))
 
     query_embedding = model.encode(query)
-    for cached_query in CacheDB.objects:
+    
+    for cached_query in CacheDB.objects(tag="deep"):
+        cached_embedding = model.encode(cached_query.query)
+        similarity = cosine_similarity(query_embedding, cached_embedding)
+        if similarity > 0.9:
+            return cached_query.answer
+        
+    for cached_query in CacheDB.objects(tag="normal"):
         cached_embedding = model.encode(cached_query.query)
         similarity = cosine_similarity(query_embedding, cached_embedding)
         if similarity > 0.9:

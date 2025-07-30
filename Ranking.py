@@ -1,4 +1,4 @@
-def ranking(chunks):
+def ranking(chunks, k=7):
     counterlist = [chunk["metadata"]["title"] for chunk in chunks]
 
     for chunk in chunks:
@@ -19,4 +19,4 @@ def ranking(chunks):
 
     unique_chunks = list(unique_chunks.values())
     unique_chunks.sort(key=lambda x: (0.7 * x["repeat_count"] + 0.3 * x["match_count"]), reverse=True)
-    return unique_chunks[:7]
+    return unique_chunks[:k]
