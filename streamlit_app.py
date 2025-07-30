@@ -60,10 +60,32 @@ st.markdown("""
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+    /* Logo styling */
+    .logo-top-right {
+        position: fixed;
+        top: 3rem;
+        right: 0.5rem;
+        width: 160px;
+        height: auto;
+        z-index: 9999;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        background: transparent;
+        pointer-events: none;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# ---- Dark Mode Styling ----
+
+
+# Display logo in top right using absolute positioning and base64
+import base64
+with open("img_0003.png", "rb") as img_file:
+    img_base64 = base64.b64encode(img_file.read()).decode()
+logo_html = f'''<img src="data:image/png;base64,{img_base64}" class="logo-top-right" alt="Logo"/>'''
+st.markdown(logo_html, unsafe_allow_html=True)
+
+
+# ---- Dark Mode Styling ----   
 st.markdown("""
     <style>
     button[data-testid="stButton"], .stButton button {
