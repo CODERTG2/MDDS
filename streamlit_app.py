@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from main import normal_search  # Make sure main.py is in the same directory or adjust the path
 
 st.set_page_config(
     page_title="Medical Diagnostic Device Research",
@@ -21,6 +22,8 @@ if "search_query" not in st.session_state:
     st.session_state.search_query = ""
 if "result_shown" not in st.session_state:
     st.session_state.result_shown = False
+if "search_result" not in st.session_state:
+    st.session_state.search_result = ""
 
 # ---- Title and Greeting ----
 st.markdown("""
@@ -54,20 +57,6 @@ st.markdown("""
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
-    .search-container {
-        position: relative;
-        width: 100%;
-    }
-    .search-container input {
-        width: 100%;
-        padding-right: 40px;
-    }
-    .search-icon {
-        position: absolute;
-        right: 10px;
-        top: 7px;
-        color: gray;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -88,6 +77,7 @@ with st.sidebar:
 
     if st.button("🧹 Clear Chat"):
         st.session_state.search_query = ""
+        st.session_state.search_result = ""
         st.session_state.result_shown = False
         st.session_state.loading = False
 
@@ -123,8 +113,8 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
+# ---- Title & Greeting ----
 st.markdown("<div class='title'>Medical Diagnostic Device Research</div>", unsafe_allow_html=True)
-
 greeting = f"Hello {st.session_state.username}, what would you like to search?" if st.session_state.username else "What would you like to search?"
 st.markdown(f"<div class='subtitle'>{greeting}</div>", unsafe_allow_html=True)
 
@@ -143,9 +133,6 @@ with st.form(key="search_form", clear_on_submit=False):
 if submitted and st.session_state.search_query.strip():
     st.session_state.loading = True
     st.session_state.result_shown = False
-
-# ---- Loading Spinner ----
-if st.session_state.loading:
     loader_area = st.empty()
     message_area = st.empty()
 
@@ -166,9 +153,15 @@ if st.session_state.loading:
 
     loader_area.empty()
     message_area.empty()
+
+    # --- Call search function from main.py ---
+    result = normal_search(st.session_state.search_query, st.session_state.temperature)
+
+    st.session_state.search_result = result
     st.session_state.loading = False
     st.session_state.result_shown = True
 
 # ---- Display Result ----
 if st.session_state.result_shown:
     st.success(f"Results for: **{st.session_state.search_query}**")
+    st.markdown(f"```markdown\n{st.session_state.search_result}\n```")
