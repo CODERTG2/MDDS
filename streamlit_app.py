@@ -316,7 +316,7 @@ st.markdown(f"<div class='subtitle'>{greeting}</div>", unsafe_allow_html=True)
 with st.form(key="search_form", clear_on_submit=False):
     search_col = st.columns([10, 1])
     st.session_state.search_query = search_col[0].text_input(
-        label="",
+        label="Search Query",
         value=st.session_state.search_query,
         placeholder="Search medical devices, papers, or terms...",
         label_visibility="collapsed"

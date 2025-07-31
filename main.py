@@ -13,6 +13,7 @@ from DeepSearch import DeepSearch
 from mongoengine import connect
 import streamlit as st
 from ScholarLink import ScholarLink
+from Evaluation import Evaluation
 
 model = SentenceTransformer('pritamdeka/S-BioBert-snli-multinli-stsb', device='cpu')
 
@@ -37,6 +38,54 @@ with open("chunks_with_entities(1).json", "r") as f:
 G = nx.read_gexf("knowledge_graph(3).gexf")
 
 connect(host=st.secrets["MONGO_URI"])
+
+def format_evaluation_results(results):
+    """Format evaluation results in a user-friendly way"""
+    if not results or "error" in results:
+        return ""
+    
+    formatted_text = "\n\n---\n**Answer Quality Assessment:**\n\n"
+    
+    if "metrics" in results:
+        metrics = results["metrics"]
+        
+        # Overall assessment
+        if "overall_chunk_relationship" in results:
+            overall = results["overall_chunk_relationship"]
+            formatted_text += f"**Overall Quality:** {overall['interpretation']} ({overall['score']:.1%})\n\n"
+        
+        # Key metrics explanation
+        formatted_text += "**Detailed Metrics:**\n"
+        
+        if "faithfulness" in metrics:
+            faith = metrics["faithfulness"]
+            formatted_text += f"• **Answer Accuracy:** {faith['interpretation']} ({faith['score']:.1%})\n"
+            formatted_text += f"  *How well the answer is supported by the provided research*\n\n"
+        
+        if "answer_relevancy" in metrics:
+            rel = metrics["answer_relevancy"]
+            formatted_text += f"• **Answer Relevancy:** {rel['interpretation']} ({rel['score']:.1%})\n"
+            formatted_text += f"  *How well the answer addresses your specific question*\n\n"
+        
+        if "context_precision" in metrics:
+            prec = metrics["context_precision"]
+            formatted_text += f"• **Source Quality:** {prec['interpretation']} ({prec['score']:.1%})\n"
+            formatted_text += f"  *Relevance of the research sources used*\n\n"
+        
+        if "context_recall" in metrics:
+            recall = metrics["context_recall"]
+            formatted_text += f"• **Information Coverage:** {recall['interpretation']} ({recall['score']:.1%})\n"
+            formatted_text += f"  *Completeness of information from available sources*\n\n"
+    
+    # Add evaluation type info
+    if "evaluation_type" in results:
+        eval_type = results["evaluation_type"]
+        if "Enhanced Semantic Similarity" in eval_type:
+            formatted_text += "*Assessment based on advanced semantic analysis of answer quality and source relevance.*"
+        else:
+            formatted_text += f"*Assessment method: {eval_type}*"
+    
+    return formatted_text
 
 def normal_search(input_query: str, temp=0.5):
     if CacheHit(input_query, model) is not False:
@@ -85,10 +134,10 @@ Disclaimer: {disclaimer}
 Instructions:
 - Base your answer primarily on the provided context
 - Prioritize the most relevant and recent information. The context is sorted by relevance where the most relevant information appears first.
-- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata after saying 'Sources'. Put the disclaimer before the sources.
+- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata after saying 'Sources'.
 - If the context doesn't contain enough information, state this clearly
 - Provide a clear, well-structured answer
-- If there is a disclaimer, mention it in your answer.
+- If there is a disclaimer, mention it in your answer. Put the disclaimer before the sources.
 
 Answer:"""
     response = client.chat.completions.create(
@@ -103,12 +152,14 @@ Answer:"""
     answer = response.choices[0].message.content.strip()
 
     links = ScholarLink(answer).extract_scholar_links()
-    print(links)
     counter = 1
     for link in links:
         answer += f"\n\n [{counter}] {link}"
         counter += 1
-    print(answer)
+
+    results = Evaluation(rankings, input_query, answer, model).evaluate_answer_chunk_relationship()
+    evaluation_text = format_evaluation_results(results)
+    answer += evaluation_text
 
     CacheDB(
         query=input_query,
@@ -161,7 +212,7 @@ Question: {input_query}
 Instructions:
 - Base your answer primarily on the provided context
 - Prioritize the most relevant and recent information. The context is sorted by relevance where the most relevant information appears first.
-- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata after saying 'Sources'. Put the disclaimer before the sources.
+- When using information from the context, cite the source based on the metadata provided like author, year, title, etc. In the text you can use author and year. But then at the end of the answer, provide a list of sources with full metadata after saying 'Sources'.
 - Provide a clear, well-structured answer
 
 Answer:"""
@@ -181,6 +232,10 @@ Answer:"""
     for link in links:
         answer += f"\n\n [{counter}] {link}"
         counter += 1
+    
+    results = Evaluation(final_context, input_query, answer, model).evaluate_answer_chunk_relationship()
+    evaluation_text = format_evaluation_results(results)
+    answer += evaluation_text
     
     CacheDB(
         query=input_query,
