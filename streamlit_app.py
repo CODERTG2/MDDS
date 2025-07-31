@@ -350,7 +350,8 @@ if submitted and st.session_state.search_query.strip():
         "Running Graph-RAG and collecting related nodes...",
         "Feeding context into the LLM...",
         "Cross-checking intersections between retrieved articles...",
-        "Ranking by match count and semantic relevance..."
+        "Ranking by match count and semantic relevance...",
+        "Evaluating the results...",
     ]
 
     for step in steps:

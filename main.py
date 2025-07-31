@@ -40,7 +40,6 @@ G = nx.read_gexf("knowledge_graph(3).gexf")
 connect(host=st.secrets["MONGO_URI"])
 
 def format_evaluation_results(results):
-    """Format evaluation results in a user-friendly way"""
     if not results or "error" in results:
         return ""
     
@@ -49,17 +48,15 @@ def format_evaluation_results(results):
     if "metrics" in results:
         metrics = results["metrics"]
         
-        # Overall assessment
         if "overall_chunk_relationship" in results:
             overall = results["overall_chunk_relationship"]
             formatted_text += f"**Overall Quality:** {overall['interpretation']} ({overall['score']:.1%})\n\n"
         
-        # Key metrics explanation
         formatted_text += "**Detailed Metrics:**\n"
         
         if "faithfulness" in metrics:
             faith = metrics["faithfulness"]
-            formatted_text += f"• **Answer Accuracy:** {faith['interpretation']} ({faith['score']:.1%})\n"
+            formatted_text += f"• **Faithfulness:** {faith['interpretation']} ({faith['score']:.1%})\n"
             formatted_text += f"  *How well the answer is supported by the provided research*\n\n"
         
         if "answer_relevancy" in metrics:
