@@ -8,7 +8,7 @@ MDDS (Medical Diagnostic Device Search) is an advanced Retrieval-Augmented Gener
 
 The system implements a multi-layered architecture:
 
-![Architecture](architecture.png)
+![Architecture](assets/architecture.png)
 
 ### Core Components
 

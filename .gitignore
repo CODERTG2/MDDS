@@ -1,7 +1,8 @@
 .env
 /content
-/knowledge_graph(3).gexf
+data/knowledge_graph(3).gexf
 /__pycache__
 model.zip
 /.streamlit
 /.venv
+/src/__pycache__

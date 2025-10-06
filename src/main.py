@@ -1,29 +1,29 @@
-from UserQuery import UserQuery
+from src.UserQuery import UserQuery
 from sentence_transformers import SentenceTransformer
-from CacheHit import CacheHit
+from src.CacheHit import CacheHit
 import faiss
-from ContextRetrieval import ContextRetrieval
-from Ranking import ranking
+from src.ContextRetrieval import ContextRetrieval
+from src.Ranking import ranking
 from openai import AzureOpenAI
 from dotenv import load_dotenv
 import json
 import networkx as nx
-from CacheDB import CacheDB
-from DeepSearch import DeepSearch
+from src.CacheDB import CacheDB
+from src.DeepSearch import DeepSearch
 from mongoengine import connect
 import streamlit as st
-from ScholarLink import ScholarLink
-from Evaluation import Evaluation
+from src.ScholarLink import ScholarLink
+from src.Evaluation import Evaluation
 
 model = SentenceTransformer('pritamdeka/S-BioBert-snli-multinli-stsb', device='cpu')
 
-vector_db = faiss.read_index("chunks(1).index")
+vector_db = faiss.read_index("data/chunks(1).index")
 
 load_dotenv()
 
 endpoint = "https://aoai-camp.openai.azure.com/"
 model_name = "gpt-4o-mini"
-deployment = "abbott_researcher"
+deployment = "medical-device-research-model"
 api_version = "2024-12-01-preview"
 
 client = AzureOpenAI(
@@ -32,10 +32,10 @@ client = AzureOpenAI(
             api_key=st.secrets["AZURE_OPEN_AI_KEY"]
 )
 
-with open("chunks_with_entities(1).json", "r") as f:
+with open("data/chunks_with_entities(1).json", "r") as f:
     dictionary = json.load(f)
 
-G = nx.read_gexf("knowledge_graph(3).gexf")
+G = nx.read_gexf("data/knowledge_graph(3).gexf")
 
 connect(host=st.secrets["MONGO_URI"])
 

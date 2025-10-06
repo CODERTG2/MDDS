@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from main import normal_search, deep_search
+from src.main import normal_search, deep_search
 
 st.set_page_config(
     page_title="Medical Diagnostic Device Research",
@@ -79,7 +79,7 @@ st.markdown("""
 
 # Display logo in top right using absolute positioning and base64
 import base64
-with open("img_0003.png", "rb") as img_file:
+with open("assets/img_0003.png", "rb") as img_file:
     img_base64 = base64.b64encode(img_file.read()).decode()
 logo_html = f'''<img src="data:image/png;base64,{img_base64}" class="logo-top-right" alt="Logo"/>'''
 st.markdown(logo_html, unsafe_allow_html=True)

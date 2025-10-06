@@ -1,6 +1,6 @@
 from sentence_transformers import SentenceTransformer
 
-from CacheDB import CacheDB
+from src.CacheDB import CacheDB
 from mongoengine import connect
 import os
 from dotenv import load_dotenv
