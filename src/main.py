@@ -14,6 +14,8 @@ from mongoengine import connect
 import streamlit as st
 from src.ScholarLink import ScholarLink
 from src.Evaluation import Evaluation
+import concurrent.futures
+from datetime import datetime
 
 model = SentenceTransformer('pritamdeka/S-BioBert-snli-multinli-stsb', device='cpu')
 
@@ -85,11 +87,22 @@ def format_evaluation_results(results):
     return formatted_text
 
 def normal_search(input_query: str, temp=0.5):
-    if CacheHit(input_query, model) is not False:
-        return CacheHit(input_query, model)
+    start_time = datetime.now()
+    print("Starting normal search..." + datetime.now().strftime("%H:%M:%S.%f")[:-3])
+    def UserQuery_multi_query(input_query, client, deployment):
+        user_query = UserQuery(input_query, client, deployment)
+        return user_query.multi_query()
 
-    user_query = UserQuery(input_query, client, deployment)
-    subqueries = user_query.multi_query()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        cache_future = executor.submit(CacheHit, input_query, model)
+        user_query_future = executor.submit(UserQuery_multi_query, input_query, client, deployment)
+
+        cache_result = cache_future.result()
+        subqueries = user_query_future.result()
+
+        if cache_result is not False:
+            return cache_result
+
     full_context = []
     disclaimers = []
     for subquery in subqueries:
@@ -147,15 +160,23 @@ Answer:"""
     )
     
     answer = response.choices[0].message.content.strip()
+    
+    def evaluation_results(rankings, input_query, answer, model):
+        results = Evaluation(rankings, input_query, answer, model).evaluate_answer_chunk_relationship()
+        return format_evaluation_results(results)
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        links_future = executor.submit(ScholarLink(answer).extract_scholar_links)
+        results_future = executor.submit(evaluation_results, rankings, input_query, answer, model)
 
-    links = ScholarLink(answer).extract_scholar_links()
+        links = links_future.result()
+        evaluation_text = results_future.result()
+    
     counter = 1
     for link in links:
         answer += f"\n\n [{counter}] {link}"
         counter += 1
-
-    results = Evaluation(rankings, input_query, answer, model).evaluate_answer_chunk_relationship()
-    evaluation_text = format_evaluation_results(results)
+    
     answer += evaluation_text
 
     CacheDB(
@@ -163,6 +184,10 @@ Answer:"""
         answer=answer,
         tag="normal"
     ).save()
+
+    print("Finished normal search..." + datetime.now().strftime("%H:%M:%S.%f")[:-3])
+    end_time = datetime.now()
+    print(f"Normal search duration: {end_time - start_time}")
 
     return answer
     
@@ -244,4 +269,3 @@ Answer:"""
 
 # result = deep_search("What is the best sugar monitoring device?")
 # print(result)
-

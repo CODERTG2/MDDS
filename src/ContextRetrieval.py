@@ -2,6 +2,7 @@ import faiss
 import spacy
 import networkx as nx
 from itertools import combinations
+import concurrent.futures
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -16,8 +17,13 @@ class ContextRetrieval:
         self.graph_search_method = graph_search_method
 
     def retrieve(self):
-        wide_net = self.retrieve_from_vector_db(self.model, self.subquery, self.vector_db)
-        tags = self.retrieve_from_knowledge_graph(self.subquery, self.knowledge_graph)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            wide_net_future = executor.submit(self.retrieve_from_vector_db, self.model, self.subquery, self.vector_db)
+            tags_future = executor.submit(self.retrieve_from_knowledge_graph, self.subquery, self.knowledge_graph)
+
+            wide_net = wide_net_future.result()
+            tags = tags_future.result()
+        
         matched_chunks = {}
         for i, chunk in enumerate(wide_net):
             entities = chunk['entities']
