@@ -30,15 +30,23 @@ class ContextRetrieval:
             match_count = sum(entities.count(tag) for tag in tags)
             if match_count > 0:
                 matched_chunks[i] = {
-                    'text': chunk['text'],
+                    'chunk_text': chunk['text'],
                     'metadata': chunk['metadata'],
                     'match_count': match_count
                 }
 
         if matched_chunks == {}:
-            return wide_net, "Try using deep search for more accurate results."
+            # Standardize key names for consistency
+            standardized_chunks = []
+            for chunk in wide_net:
+                standardized_chunk = chunk.copy()
+                if 'text' in standardized_chunk:
+                    standardized_chunk['chunk_text'] = standardized_chunk.pop('text')
+                standardized_chunks.append(standardized_chunk)
+            return standardized_chunks, "Try using deep search for more accurate results."
     
-        return matched_chunks, ""
+        # Convert matched_chunks dict to list
+        return list(matched_chunks.values()), ""
             
     def retrieve_from_vector_db(self, model, query, vector_db):
         # Use vector_db to retrieve relevant context based on the query

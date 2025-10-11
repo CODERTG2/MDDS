@@ -41,60 +41,6 @@ G = nx.read_gexf("data/knowledge_graph(3).gexf")
 
 connect(host=st.secrets["MONGO_URI"])
 
-def format_evaluation_results(results):
-    if not results or "error" in results:
-        return ""
-    
-    formatted_text = "\n\n---\n**Answer Quality Assessment:**\n\n"
-    
-    if "overall_score" in results:
-        overall = results["overall_score"]
-        formatted_text += f"**Overall Quality:** {overall['interpretation']} ({overall['score']:.1%})\n\n"
-    
-    if "metrics" in results:
-        metrics = results["metrics"]
-        formatted_text += "**Detailed Metrics:**\n"
-        
-        if "answer_top_chunk_similarity" in metrics:
-            ans_chunk = metrics["answer_top_chunk_similarity"]
-            formatted_text += f"• **Answer-Source Alignment:** {ans_chunk['interpretation']} ({ans_chunk['score']:.1%})\n"
-            formatted_text += f"  *How well the answer is grounded in the most relevant research*\n\n"
-        
-        if "query_top_chunk_similarity" in metrics:
-            query_chunk = metrics["query_top_chunk_similarity"]
-            formatted_text += f"• **Source Relevance:** {query_chunk['interpretation']} ({query_chunk['score']:.1%})\n"
-            formatted_text += f"  *How well the top source matches your question*\n\n"
-        
-        if "answer_query_similarity" in metrics:
-            ans_query = metrics["answer_query_similarity"]
-            formatted_text += f"• **Answer Relevance:** {ans_query['interpretation']} ({ans_query['score']:.1%})\n"
-            formatted_text += f"  *How directly the answer addresses your question*\n\n"
-    
-    # Show which chunk was selected as most relevant
-    if "top_chunk_index" in results:
-        chunk_idx = results["top_chunk_index"]
-        formatted_text += f"*Based on analysis of chunk #{chunk_idx + 1} as the most relevant source.*\n"
-    
-    # Add debug info if overall score is low
-    if "overall_score" in results and results["overall_score"]["score"] < 0.5:
-        if "debug_info" in results:
-            debug = results["debug_info"]
-            formatted_text += f"\n**Debug Info (Low Score Analysis):**\n"
-            formatted_text += f"• Answer preview: {debug.get('answer_preview', 'N/A')[:100]}...\n"
-            formatted_text += f"• Query: {debug.get('query', 'N/A')}\n"
-            formatted_text += f"• Top chunk preview: {debug.get('top_chunk_preview', 'N/A')[:100]}...\n"
-            formatted_text += f"• All similarities: {debug.get('all_answer_chunk_similarities', [])}\n"
-    
-    # Add evaluation type info
-    if "evaluation_type" in results:
-        eval_type = results["evaluation_type"]
-        if "Top Chunk" in eval_type:
-            formatted_text += "*Assessment focuses on the highest-quality source match.*"
-        else:
-            formatted_text += f"*Assessment method: {eval_type}*"
-    
-    return formatted_text
-
 def normal_search(input_query: str, temp=0.5):
     start_time = datetime.now()
     print("Starting normal search..." + datetime.now().strftime("%H:%M:%S.%f")[:-3])
@@ -173,13 +119,9 @@ Answer:"""
     
     answer = response.choices[0].message.content.strip()
     
-    def evaluation_results(rankings, input_query, answer, model):
-        results = Evaluation(rankings, input_query, answer, model).evaluate_answer_chunk_relationship()
-        return format_evaluation_results(results)
-    
     with concurrent.futures.ThreadPoolExecutor() as executor:
         links_future = executor.submit(ScholarLink(answer).extract_scholar_links)
-        results_future = executor.submit(evaluation_results, rankings, input_query, answer, model)
+        results_future = executor.submit(Evaluation(rankings, input_query, answer, model).evaluate)
 
         links = links_future.result()
         evaluation_text = results_future.result()
@@ -207,6 +149,8 @@ Answer:"""
 # print(result)
 
 def deep_search(input_query: str, temp: float):
+    start_time = datetime.now()
+    print("Starting deep search..." + datetime.now().strftime("%H:%M:%S.%f")[:-3])
     user_query = UserQuery(input_query, client, deployment)
     subqueries = user_query.multi_query()
     full_context = []
@@ -264,14 +208,18 @@ Answer:"""
     
     answer = response.choices[0].message.content.strip()
 
-    links = ScholarLink(answer).extract_scholar_links()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        links_future = executor.submit(ScholarLink(answer).extract_scholar_links)
+        results_future = executor.submit(Evaluation(final_context, input_query, answer, model).evaluate)
+
+        links = links_future.result()
+        evaluation_text = results_future.result()
+
     counter = 1
     for link in links:
         answer += f"\n\n [{counter}] {link}"
         counter += 1
-    
-    results = Evaluation(final_context, input_query, answer, model).evaluate_answer_chunk_relationship()
-    evaluation_text = format_evaluation_results(results)
+
     answer += evaluation_text
     
     CacheDB(
@@ -279,7 +227,11 @@ Answer:"""
         answer=answer,
         tag="deep"
     ).save()
-    
+
+    print("Finished deep search..." + datetime.now().strftime("%H:%M:%S.%f")[:-3])
+    end_time = datetime.now()
+    print(f"Deep search duration: {end_time - start_time}")
+
     return answer
 
 # result = deep_search("What is the best sugar monitoring device?")

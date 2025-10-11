@@ -1,9 +1,10 @@
 from sentence_transformers import SentenceTransformer
-
 from src.CacheDB import CacheDB
 from mongoengine import connect
 import os
 from dotenv import load_dotenv
+from src.util import cosine_similarity
+import concurrent.futures
 
 
 def CacheHit(query: str, model: SentenceTransformer):
@@ -12,21 +13,30 @@ def CacheHit(query: str, model: SentenceTransformer):
 
     query_embedding = model.encode(query)
 
-    for cached_query in CacheDB.objects(tag="deep"):
-        cached_embedding = model.encode(cached_query.query)
-        similarity = cosine_similarity(query_embedding, cached_embedding)
-        if similarity > 0.8:
-            return cached_query.answer
-        
-    for cached_query in CacheDB.objects(tag="normal"):
-        cached_embedding = model.encode(cached_query.query)
-        similarity = cosine_similarity(query_embedding, cached_embedding)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        deep_future = executor.submit(check_cache_deep)
+        normal_future = executor.submit(check_cache_normal)
+
+        deep_result = deep_future.result()
+        if deep_result:
+            return deep_result
+
+        normal_result = normal_future.result()
+        if normal_result:
+            return normal_result
+
+    def check_cache_deep():
+        for cached_query in CacheDB.objects(tag="deep"):
+            cached_embedding = model.encode(cached_query.query)
+            similarity = cosine_similarity(query_embedding, cached_embedding)
+            if similarity > 0.8:
+                return cached_query.answer
+
+    def check_cache_normal():
+        for cached_query in CacheDB.objects(tag="normal"):
+            cached_embedding = model.encode(cached_query.query)
+            similarity = cosine_similarity(query_embedding, cached_embedding)
         if similarity > 0.8:
             return cached_query.answer
 
     return False
-
-def cosine_similarity(vec1, vec2):
-    from numpy import dot
-    from numpy.linalg import norm
-    return dot(vec1, vec2) / (norm(vec1) * norm(vec2))
