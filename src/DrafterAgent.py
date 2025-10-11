@@ -22,6 +22,7 @@ Assess:
 1. Is the answer well-grounded in the provided context? 
 2. Does the answer directly address the query?
 3. Is the context sufficient to answer the query?
+4. Any other brief suggestions for improvement?
 
 Respond ONLY with JSON:
 {{
@@ -57,6 +58,8 @@ Respond ONLY with JSON:
             improvement_focus.append("Better ground the answer in the provided context")
         if assessment.get("needs_query_focus"): 
             improvement_focus.append("Make the answer more directly responsive to the query")
+        if assessment.get("assessment_summary"):
+            improvement_focus.append(assessment["assessment_summary"])
             
         prompt = f"""Improve this answer focusing on: {', '.join(improvement_focus)}
 
