@@ -119,14 +119,16 @@ Answer:"""
     
     answer = response.choices[0].message.content.strip()
     
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        links_future = executor.submit(ScholarLink(answer).extract_scholar_links)
-        results_future = executor.submit(Evaluation(rankings, input_query, answer, model).evaluate)
+    evaluator = Evaluation(rankings, input_query, model, client)
+    initial_metrics = evaluator.evaluate(answer)
+    if initial_metrics < 0.7:
+        answer = evaluator.drafting(answer)
+        evaluator.evaluate(answer)
 
-        links = links_future.result()
-        evaluation_text = results_future.result()
-    
+    evaluation_text = evaluator.format_evaluation_results()
+
     counter = 1
+    links = ScholarLink(answer).extract_scholar_links()
     for link in links:
         answer += f"\n\n [{counter}] {link}"
         counter += 1
@@ -208,14 +210,16 @@ Answer:"""
     
     answer = response.choices[0].message.content.strip()
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        links_future = executor.submit(ScholarLink(answer).extract_scholar_links)
-        results_future = executor.submit(Evaluation(final_context, input_query, answer, model).evaluate)
+    evaluator = Evaluation(final_context, input_query, model, client)
+    initial_metrics = evaluator.evaluate(answer)
+    if initial_metrics < 0.7:
+        answer = evaluator.drafting(answer)
+        evaluator.evaluate(answer)
 
-        links = links_future.result()
-        evaluation_text = results_future.result()
+    evaluation_text = evaluator.format_evaluation_results()
 
     counter = 1
+    links = ScholarLink(answer).extract_scholar_links()
     for link in links:
         answer += f"\n\n [{counter}] {link}"
         counter += 1
