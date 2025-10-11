@@ -47,40 +47,49 @@ def format_evaluation_results(results):
     
     formatted_text = "\n\n---\n**Answer Quality Assessment:**\n\n"
     
+    if "overall_score" in results:
+        overall = results["overall_score"]
+        formatted_text += f"**Overall Quality:** {overall['interpretation']} ({overall['score']:.1%})\n\n"
+    
     if "metrics" in results:
         metrics = results["metrics"]
-        
-        if "overall_chunk_relationship" in results:
-            overall = results["overall_chunk_relationship"]
-            formatted_text += f"**Overall Quality:** {overall['interpretation']} ({overall['score']:.1%})\n\n"
-        
         formatted_text += "**Detailed Metrics:**\n"
         
-        if "faithfulness" in metrics:
-            faith = metrics["faithfulness"]
-            formatted_text += f"• **Faithfulness:** {faith['interpretation']} ({faith['score']:.1%})\n"
-            formatted_text += f"  *How well the answer is supported by the provided research*\n\n"
+        if "answer_top_chunk_similarity" in metrics:
+            ans_chunk = metrics["answer_top_chunk_similarity"]
+            formatted_text += f"• **Answer-Source Alignment:** {ans_chunk['interpretation']} ({ans_chunk['score']:.1%})\n"
+            formatted_text += f"  *How well the answer is grounded in the most relevant research*\n\n"
         
-        if "answer_relevancy" in metrics:
-            rel = metrics["answer_relevancy"]
-            formatted_text += f"• **Answer Relevancy:** {rel['interpretation']} ({rel['score']:.1%})\n"
-            formatted_text += f"  *How well the answer addresses your specific question*\n\n"
+        if "query_top_chunk_similarity" in metrics:
+            query_chunk = metrics["query_top_chunk_similarity"]
+            formatted_text += f"• **Source Relevance:** {query_chunk['interpretation']} ({query_chunk['score']:.1%})\n"
+            formatted_text += f"  *How well the top source matches your question*\n\n"
         
-        if "context_precision" in metrics:
-            prec = metrics["context_precision"]
-            formatted_text += f"• **Source Quality:** {prec['interpretation']} ({prec['score']:.1%})\n"
-            formatted_text += f"  *Relevance of the research sources used*\n\n"
-        
-        if "context_recall" in metrics:
-            recall = metrics["context_recall"]
-            formatted_text += f"• **Information Coverage:** {recall['interpretation']} ({recall['score']:.1%})\n"
-            formatted_text += f"  *Completeness of information from available sources*\n\n"
+        if "answer_query_similarity" in metrics:
+            ans_query = metrics["answer_query_similarity"]
+            formatted_text += f"• **Answer Relevance:** {ans_query['interpretation']} ({ans_query['score']:.1%})\n"
+            formatted_text += f"  *How directly the answer addresses your question*\n\n"
+    
+    # Show which chunk was selected as most relevant
+    if "top_chunk_index" in results:
+        chunk_idx = results["top_chunk_index"]
+        formatted_text += f"*Based on analysis of chunk #{chunk_idx + 1} as the most relevant source.*\n"
+    
+    # Add debug info if overall score is low
+    if "overall_score" in results and results["overall_score"]["score"] < 0.5:
+        if "debug_info" in results:
+            debug = results["debug_info"]
+            formatted_text += f"\n**Debug Info (Low Score Analysis):**\n"
+            formatted_text += f"• Answer preview: {debug.get('answer_preview', 'N/A')[:100]}...\n"
+            formatted_text += f"• Query: {debug.get('query', 'N/A')}\n"
+            formatted_text += f"• Top chunk preview: {debug.get('top_chunk_preview', 'N/A')[:100]}...\n"
+            formatted_text += f"• All similarities: {debug.get('all_answer_chunk_similarities', [])}\n"
     
     # Add evaluation type info
     if "evaluation_type" in results:
         eval_type = results["evaluation_type"]
-        if "Enhanced Semantic Similarity" in eval_type:
-            formatted_text += "*Assessment based on advanced semantic analysis of answer quality and source relevance.*"
+        if "Top Chunk" in eval_type:
+            formatted_text += "*Assessment focuses on the highest-quality source match.*"
         else:
             formatted_text += f"*Assessment method: {eval_type}*"
     
@@ -105,12 +114,15 @@ def normal_search(input_query: str, temp=0.5):
 
     full_context = []
     disclaimers = []
-    for subquery in subqueries:
-        context, disclaimer = ContextRetrieval(model, G, vector_db, dictionary, subquery).retrieve()
-        if disclaimer != "":
-            disclaimers.append(disclaimer)
-        for con in context:
-            full_context.append(con)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(ContextRetrieval(model, G, vector_db, dictionary, subquery).retrieve): subquery for subquery in subqueries}
+        for future in concurrent.futures.as_completed(futures):
+            context, disclaimer = future.result()
+            if disclaimer != "":
+                disclaimers.append(disclaimer)
+            for con in context:
+                full_context.append(con)
 
     if "" in disclaimers:
         disclaimer = "No disclaimer"
@@ -199,13 +211,16 @@ def deep_search(input_query: str, temp: float):
     subqueries = user_query.multi_query()
     full_context = []
 
-    deep_searcher = DeepSearch(input_query, model, k_articles=5, k_chunks=7)
-    chunks = deep_searcher.get_context()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        deep_searcher_future = executor.submit(DeepSearch(input_query, model, k_articles=5, k_chunks=7).get_context)
+        futures = {executor.submit(ContextRetrieval(model, G, vector_db, dictionary, subquery, k=30).retrieve): subquery for subquery in subqueries}
+        
+        chunks = deep_searcher_future.result()
 
-    for subquery in subqueries:
-        context, disclaimer = ContextRetrieval(model, G, vector_db, dictionary, subquery, k=30).retrieve()
-        for con in context:
-            full_context.append(con)
+        for future in concurrent.futures.as_completed(futures):
+            context, disclaimer = future.result()
+            for con in context:
+                full_context.append(con)
 
     rankings = ranking(full_context, k=3)
 

@@ -9,6 +9,7 @@ import io
 from PyPDF2 import PdfReader
 import requests
 import faiss
+import concurrent.futures
 
 nltk.download('stopwords')
 nltk.download('wordnet')
@@ -38,7 +39,6 @@ class DeepSearch:
         return keyword
 
     def get_context(self):
-        k=5
         encodingmethod = "utf-8"
         errortype = "strict"
         encoded_search_term = urllib.parse.quote(self.keyword, encoding=encodingmethod, errors=errortype)
@@ -92,7 +92,8 @@ class DeepSearch:
         chunks = []
         chunk_size_sentences = 50
 
-        for i, article in enumerate(articles_data):
+        def process_article(article):
+            """Process a single article in parallel"""
             try:
                 pdf_response = requests.get(article['pdf_url'], timeout=30)
                 pdf_response.raise_for_status()
@@ -115,7 +116,8 @@ class DeepSearch:
 
                 sentences = nltk.sent_tokenize(pdf_text)
                 num_sentences = len(sentences)
-
+                
+                article_chunks = []
                 for j in range(0, num_sentences, chunk_size_sentences):
                     chunk_sentences = sentences[j:j + chunk_size_sentences]
                     chunk_text = " ".join(chunk_sentences)
@@ -130,13 +132,25 @@ class DeepSearch:
                             'metadata': article['metadata'],
                             'sentence_count': len(chunk_sentences)
                         }
-                        embedding = chunk_data['embedding'].reshape(1, -1).astype("float32")
-                        faiss.normalize_L2(embedding)
-                        self.index.add(embedding)
-                        chunks.append(chunk_data)
+                        article_chunks.append(chunk_data)
+                
+                return article_chunks
 
             except Exception as e:
-                raise
+                print(f"Error processing article {article['metadata'].get('title', 'Unknown')}: {str(e)}")
+                return []
+
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(process_article, article): article for article in articles_data}
+            
+            for future in concurrent.futures.as_completed(futures):
+                article_chunks = future.result()
+                for chunk_data in article_chunks:
+                    embedding = chunk_data['embedding'].reshape(1, -1).astype("float32")
+                    faiss.normalize_L2(embedding)
+                    self.index.add(embedding)
+                    chunks.append(chunk_data)
         
         query_embedding = self.model.encode(self.query, convert_to_tensor=True)
         query_embedding = query_embedding.cpu().numpy().astype('float32')
