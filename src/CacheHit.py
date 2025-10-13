@@ -1,9 +1,9 @@
 from sentence_transformers import SentenceTransformer
-from src.CacheDB import CacheDB
+from CacheDB import CacheDB
 from mongoengine import connect
 import os
 from dotenv import load_dotenv
-from src.util import cosine_similarity
+from util import cosine_similarity
 import concurrent.futures
 
 def check_cache_deep(query, model, query_embedding):
@@ -38,4 +38,4 @@ def CacheHit(query: str, model: SentenceTransformer):
         if normal_result:
             return normal_result
 
-    return False
+    return ""

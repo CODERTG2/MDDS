@@ -1,9 +1,8 @@
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
 import numpy as np
 import concurrent.futures
-from src.util import cosine_similarity
-from src.DrafterAgent import DrafterAgent
+from util import cosine_similarity
+from DrafterAgent import DrafterAgent
 
 class Evaluation:
     def __init__(self, chunks, query, sentence_transformer_model, client):

@@ -1,5 +1,3 @@
-from openai import AzureOpenAI
-
 class UserQuery:
     def __init__(self, query: str, client, deployment):
         self.query = query

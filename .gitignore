@@ -6,3 +6,5 @@ model.zip
 /.streamlit
 /.venv
 /src/__pycache__
+/src/mcp/__pycache__
+/src/mcp/.mcpenv
