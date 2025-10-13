@@ -23,8 +23,6 @@ from DeepSearch import DeepSearch
 
 
 mcp = FastMCP("MDDS")
-os.environ.setdefault('MCP_REQUEST_TIMEOUT', '900')  # 15 minutes
-os.environ.setdefault('MCP_READ_TIMEOUT', '900')     # 15 minutes
 
 endpoint = "https://aoai-camp.openai.azure.com/"
 model_name = "gpt-4o-mini"
