@@ -276,7 +276,9 @@
             <div id="modeChip" class="mode-chip" title="Current color mode">
               <span class="dot"></span><span id="modeChipText">Light Mode</span>
             </div>
-            <button type="button" class="btn secondary" id="deepBtn">🔎 Deep: OFF</button>
+            <button type="button" class="btn secondary" id="normalBtn">📄 Normal</button>
+            <button type="button" class="btn secondary" id="deepBtn">🔎 Deep</button>
+            <button type="button" class="btn secondary" id="intelligentBtn">🧠 Intelligent</button>
           </div>
         </div>
 
@@ -312,7 +314,9 @@
       latch: $('sidebarLatch'),
       lightBtn: $('lightBtn'),
       darkBtn: $('darkBtn'),
+      normalBtn: $('normalBtn'),
       deepBtn: $('deepBtn'),
+      intelligentBtn: $('intelligentBtn'),
       clearBtn: $('clearBtn'),
       temp: $('temp'),
       tempVal: $('tempVal'),
@@ -327,7 +331,7 @@
     };
 
     // state
-    const state = { dark:false, deep:false, username:"", temperature:0.5, typingTimer:null, sidebarOpen:true };
+    const state = { dark:false, searchMode:'normal', username:"", temperature:0.5, typingTimer:null, sidebarOpen:true };
 
     // prompts list - need to change to be tailored for our database
     const samplePrompts = [
@@ -344,14 +348,11 @@
 
       setTheme(!!state.dark);
       setSidebar(true, true);
+      setSearchMode(state.searchMode || 'normal');
 
       els.name && (els.name.value = state.username || '');
       els.temp && (els.temp.value = state.temperature);
       els.tempVal && (els.tempVal.textContent = Number(state.temperature).toFixed(2));
-      if (els.deepBtn){
-        els.deepBtn.textContent = `🔎 Deep: ${state.deep ? 'ON' : 'OFF'}`;
-        els.deepBtn.classList.toggle('is-on', state.deep);
-      }
       els.greeting && (els.greeting.textContent = state.username ? `Hello ${state.username}, what would you like to search?` : 'What would you like to search?');
 
       renderPrompts();
@@ -359,12 +360,9 @@
       on(els.latch, 'click', () => setSidebar(!state.sidebarOpen));
       on(els.lightBtn, 'click', () => setTheme(false));
       on(els.darkBtn, 'click',  () => setTheme(true));
-      on(els.deepBtn, 'click', () => {
-        state.deep = !state.deep;
-        els.deepBtn.textContent = `🔎 Deep: ${state.deep ? 'ON' : 'OFF'}`;
-        els.deepBtn.classList.toggle('is-on', state.deep);
-        persist();
-      });
+      on(els.normalBtn, 'click', () => setSearchMode('normal'));
+      on(els.deepBtn, 'click', () => setSearchMode('deep'));
+      on(els.intelligentBtn, 'click', () => setSearchMode('intelligent'));
       on(els.clearBtn, 'click', () => {
         clearInterval(state.typingTimer || 0);
         els.query && (els.query.value = '');
@@ -414,6 +412,18 @@
       persist();
     }
 
+    // search mode
+    function setSearchMode(mode){
+      state.searchMode = mode;
+      
+      // Update button states
+      els.normalBtn && els.normalBtn.classList.toggle('is-active', mode === 'normal');
+      els.deepBtn && els.deepBtn.classList.toggle('is-active', mode === 'deep');
+      els.intelligentBtn && els.intelligentBtn.classList.toggle('is-active', mode === 'intelligent');
+      
+      persist();
+    }
+
     // sidebar
     function setSidebar(open, skipPersist){
       state.sidebarOpen = !!open;
@@ -434,53 +444,15 @@
       ).join('');
     }
 
-    // mock backend (need to be integrated)
-    const loremItems = [
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-      "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-      "Ut enim ad minim veniam, quis nostrud exercitation ullamco.",
-      "Duis aute irure dolor in reprehenderit in voluptate velit esse."
-    ];
-    const loremClusters = [
-      "Cluster 1: lorem + ipsum","Cluster 2: dolor + sit","Cluster 3: amet + consectetur"
-    ];
-    function randint(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
-    function choice(arr){ return arr[randint(0,arr.length-1)]; }
-
-    function mockNormalSearch(query, temperature){
-      return `
-        <div class="result">
-          <h1>Results: ${escapeHtml(query)}</h1>
-          <h2>Lorem</h2>
-          <ul>${loremItems.map(x=>`<li>${x}</li>`).join('')}</ul>
-          <h2>Ipsum</h2>
-          <ol><li>— lorem</li><li>— ipsum</li><li>— dolor</li></ol>
-          <h2>Dolor</h2>
-          <ul><li>Adipiscing elit</li><li>Sed do eiusmod</li></ul>
-          <p><em>Temperature ${temperature.toFixed(2)} used.</em></p>
-        </div>`;
-    }
-    function mockDeepSearch(query, temperature){
-      const hops = randint(2,5), edges = randint(6,14), flavor = choice(["Graph-RAG","Co-Occurrence","Citations","Communities"]);
-      return `
-        <div class="result">
-          <h1>Results: ${escapeHtml(query)}</h1>
-          <p><strong>${flavor}</strong> ${edges} — ${hops}.</p>
-          <h2>Lorem</h2>
-          <ul>${loremClusters.map(c=>`<li>${c}</li>`).join("")}</ul>
-          <h2>Ipsum</h2><p>— sit amet.</p>
-          <p><em>Temperature ${temperature.toFixed(2)} used.</em></p>
-        </div>`;
-    }
-
-    // search flow - part of animation
+    // search flow with real API calls
     const steps = [
       "Creating subqueries from your query...","Searching vector DB for each subquery...",
       "Running Graph-RAG and collecting related nodes...","Feeding context into the LLM...",
       "Cross-checking intersections between retrieved articles...","Ranking by match count and semantic relevance...",
       "Evaluating the results..."
     ];
-    function runSearch(){
+    
+    async function runSearch(){
       const q = (els.query && els.query.value || '').trim();
       if(!q){ els.query && els.query.focus(); return; }
 
@@ -495,10 +467,88 @@
         if(i < steps.length){ stepEl && (stepEl.textContent = steps[i]); }
         else{
           clearInterval(stepper);
-          const html = state.deep ? mockDeepSearch(q, state.temperature) : mockNormalSearch(q, state.temperature);
-          showResult(html);
+          performSearch(q);
         }
       }, 550);
+    }
+
+    async function performSearch(query) {
+      try {
+        let toolName, toolArgs;
+        
+        // Determine which tool to call based on search mode
+        switch(state.searchMode) {
+          case 'normal':
+            toolName = 'normal_search';
+            toolArgs = { input_query: query };
+            break;
+          case 'deep':
+            toolName = 'deep_search';
+            toolArgs = { input_query: query };
+            break;
+          case 'intelligent':
+            toolName = 'intelligent_search';
+            toolArgs = { query: query };
+            break;
+          default:
+            toolName = 'normal_search';
+            toolArgs = { input_query: query };
+        }
+
+        const response = await fetch('/api/mcp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: toolName,
+            arguments: toolArgs
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Format the result for display
+        const resultHTML = formatSearchResult(result, query, state.searchMode);
+        showResult(resultHTML);
+        
+      } catch (error) {
+        console.error('Search failed:', error);
+        els.statusArea && (els.statusArea.innerHTML = `<div style="color: red; text-align: center;">Search failed: ${error.message}</div>`);
+      }
+    }
+
+    function formatSearchResult(result, query, mode) {
+      const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
+      let content = '';
+      
+      if (result.content && Array.isArray(result.content)) {
+        content = result.content.map(item => {
+          if (item.type === 'text') {
+            return item.text;
+          }
+          return '';
+        }).join('\n');
+      } else if (typeof result === 'string') {
+        content = result;
+      } else if (result.content && typeof result.content === 'string') {
+        content = result.content;
+      } else {
+        content = JSON.stringify(result, null, 2);
+      }
+
+      return `
+        <div class="result">
+          <h1>${modeLabel} Search Results: ${escapeHtml(query)}</h1>
+          <div style="background: var(--surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+            <pre style="white-space: pre-wrap; margin: 0;">${escapeHtml(content)}</pre>
+          </div>
+          <p><em>Search mode: ${modeLabel} | Temperature: ${state.temperature.toFixed(2)}</em></p>
+        </div>`;
     }
 
     function showResult(resultHTML){
