@@ -8,3 +8,5 @@ model.zip
 /src/__pycache__
 /src/mcp/__pycache__
 /src/mcp/.mcpenv
+mcp_server.log
+node_modules

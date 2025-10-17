@@ -4,6 +4,31 @@
 
 MDDS (Medical Diagnostic Device Search) is an advanced Retrieval-Augmented Generation (RAG) system designed to provide intelligent search capabilities for medical diagnostic device research. The system combines vector similarity search, knowledge graph traversal, and deep search capabilities to deliver comprehensive and accurate responses to complex medical queries.
 
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v14 or higher)
+- Python 3.8+ (for the MCP Server)
+- Required Python packages (see `requirements.txt`)
+
+### Setup and Installation
+
+1. **Start the Express Server**
+   ```
+   npm install
+   npm start
+   ```
+   This will start the web server on http://localhost:3000.
+
+2. **Start the MCP Server**
+   The MCP (Model Context Protocol) server needs to be running separately. By default, the client assumes it's running on http://localhost:5000.
+   ```
+   python -m src.MCPServer
+   ```
+
+3. **Client Configuration**
+   If your MCP server is running on a different URL, you can update it in the `js/mcp-client.js` file.
+
 ## 🏗️ System Architecture
 
 The system implements a multi-layered architecture:

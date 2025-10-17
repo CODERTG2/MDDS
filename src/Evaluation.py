@@ -4,6 +4,8 @@ import concurrent.futures
 from util import cosine_similarity
 from DrafterAgent import DrafterAgent
 
+# TODO: groundedness of answer to source chunks by first finding all the claims and then checking if they are present in the chunks.
+
 class Evaluation:
     def __init__(self, chunks, query, sentence_transformer_model, client):
         self.chunks = chunks

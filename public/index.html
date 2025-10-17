@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-sidebar="open">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UI Tester — Medical Diagnostic Device Research</title>
+  <style>
+    :root{
+      --blue-500:#3b82f6; --blue-600:#2563eb; --sky-300:#7dd3fc;
+      --success:#22c55e; --radius:14px; --fast:220ms; --slow:420ms;
+      --sidebar-w:300px; --center-max:820px; --gutter:24px;
+      --bg:#ffffff; --surface:#f8fafc; --text:#0f172a; --muted:#475569; --border:#e2e8f0; --code-bg:#f8fafc;
+      --glow: rgba(59,130,246,.32); --glow-strong: rgba(59,130,246,.55);
+    }
+    html[data-theme="dark"]{
+      --bg:#0b1120; --surface:#0f172a; --text:#e5e7eb; --muted:#cbd5e1; --border:#1e293b; --code-bg:#0b1220;
+      --glow: rgba(125,211,252,.38); --glow-strong: rgba(103,232,249,.65);
+    }
+
+    html, body { transition: background-color var(--slow), color var(--slow), border-color var(--slow); }
+    body{
+      margin:0; min-height:100vh; color:var(--text); overflow-x:hidden;
+      background:
+        radial-gradient(1200px 800px at 10% -10%, rgba(99,102,241,.10), transparent 60%),
+        radial-gradient(900px 600px at 110% 10%, rgba(59,130,246,.10), transparent 50%),
+        var(--bg);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial;
+    }
+
+    /*sidebar*/
+    .sidebar{
+      position: fixed; z-index: 1000;
+      left:0; top:0; bottom:0; width:var(--sidebar-w);
+      background:var(--surface); border-right:1px solid var(--border);
+      padding:16px; overflow:auto;
+      box-shadow: 0 16px 40px rgba(0,0,0,.15), 0 0 24px var(--glow);
+      transition: transform var(--fast), opacity var(--fast);
+    }
+    html[data-sidebar="closed"] .sidebar{ transform: translateX(-102%); opacity:0; pointer-events:none; }
+
+    .sidebar h3{ margin:8px 2px 10px; font-size:1.1rem; }
+    .field{ margin:12px 2px; display:flex; flex-direction:column; gap:6px; }
+    .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    label{ font-size:.92rem; color:var(--muted); }
+
+    input[type="text"]{
+      padding:.6rem .8rem; border-radius:12px; border:1px solid var(--border);
+      background:#fff; color:#0f172a; transition:border-color var(--fast), box-shadow var(--fast);
+    }
+    html[data-theme="dark"] input[type="text"]{ background:var(--surface); color:var(--text); border-color:var(--border); }
+    input[type="range"]{ width:100%; accent-color:var(--blue-600); }
+
+    /*sidebar latch*/
+    .latch{
+      position: fixed; z-index: 1001;
+      top:50%; left:calc(var(--sidebar-w) + 8px); transform:translateY(-50%);
+      width:36px; height:60px; border-radius:0 12px 12px 0;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--surface); color:var(--text); border:1px solid var(--border);
+      box-shadow: 0 6px 16px rgba(0,0,0,.15), 0 0 20px var(--glow);
+      transition:left var(--fast), background-color var(--slow), color var(--slow), border-color var(--slow);
+      cursor:pointer;
+    }
+    html[data-sidebar="closed"] .latch{ left:10px; border-radius:12px; }
+
+    /*main app */
+    .app{
+      position: relative; z-index: 1;
+      min-height:100vh;
+      margin-left: calc(var(--sidebar-w) + var(--gutter));
+      padding: var(--gutter);
+      display:flex; flex-direction:column;
+    }
+    html[data-sidebar="closed"] .app{ margin-left: var(--gutter); }
+
+    .center-wrap{
+      flex:1 0 auto;
+      display:grid; place-items:center;
+      min-height: calc(100vh - 2*var(--gutter));
+    }
+    .center-stack{
+      width:100%; max-width:var(--center-max);
+      display:grid; gap:16px;
+    }
+
+    /* header + search animations*/
+    .header{
+      display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center;
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.08), 0 0 0 1px var(--border), 0 0 24px var(--glow);
+    }
+    .app-title{
+      margin:0; font-size:2.6rem; font-weight:800; letter-spacing:.2px;
+      background:linear-gradient(90deg, var(--blue-600), var(--blue-500), var(--sky-300), var(--blue-600));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+      background-size:200% 100%; animation:titleShine 10s linear infinite;
+      text-shadow:0 0 22px var(--glow);
+      position: relative; display:inline-block; isolation:isolate; /* for hover shine */
+    }
+    @keyframes titleShine { 0%{background-position:0% 0} 100%{background-position:200% 0} }
+    .app-sub{ color:var(--muted); font-size:1.15rem; }
+
+    .mode-chip{
+      display:inline-flex; align-items:center; gap:8px; padding:.45rem .7rem; border-radius:999px;
+      border:1px solid var(--border); background:rgba(255,255,255,0.5);
+      box-shadow: 0 8px 20px rgba(0,0,0,.08), 0 0 0 1px var(--border), 0 0 18px var(--glow);
+      font-weight:800;
+    }
+    html[data-theme="dark"] .mode-chip{ background:rgba(15,23,42,0.5); }
+    .mode-chip .dot{ width:10px; height:10px; border-radius:999px; background:var(--blue-500); box-shadow:0 0 10px var(--glow-strong), 0 0 2px var(--blue-500) inset; }
+
+    /*extra hover affect for title */
+    .app-title::after{
+      content:"";
+      position:absolute;
+      inset: 0 auto 0 -150%;
+      width:55%;
+      transform:skewX(-20deg);
+      background:
+        linear-gradient(120deg,
+          rgba(255,255,255,0) 0%,
+          rgba(255,255,255,0.12) 40%,
+          rgba(255,255,255,0.65) 50%,
+          rgba(255,255,255,0.12) 60%,
+          rgba(255,255,255,0) 100%
+        );
+      opacity:0;
+      pointer-events:none;
+      filter: blur(0.2px);
+    }
+    .app-title:hover::after{
+      animation: shineSweep 1.15s ease;
+      opacity:1;
+    }
+    .app-title:hover{
+      text-shadow: 0 0 30px var(--glow-strong), 0 0 8px rgba(255,255,255,.35);
+    }
+    @keyframes shineSweep{
+      from { left:-150%; }
+      to   { left:150%; }
+    }
+
+    /*suggested prompts */
+    .examples{
+      display:flex; flex-direction:column; gap:8px; align-items:center; margin-top:2px;
+    }
+    .examples-title{
+      font-size:.9rem; color:var(--muted);
+      text-shadow: 0 0 6px color-mix(in srgb, var(--glow) 50%, transparent);
+    }
+    .chips{
+      display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+      max-width:var(--center-max);
+    }
+    .chip{
+      border:1px solid var(--border);
+      background:
+        linear-gradient(180deg,
+          color-mix(in oklab, var(--surface) 88%, transparent),
+          color-mix(in oklab, var(--surface) 94%, transparent)
+        );
+      color: var(--text);
+      border-radius:999px; padding:.40rem .70rem; font-size:.90rem; line-height:1;
+      box-shadow: 0 6px 16px rgba(0,0,0,.06), 0 0 10px var(--glow);
+      cursor:pointer;
+      transition: transform var(--fast), box-shadow var(--fast), background-color var(--fast), border-color var(--fast);
+    }
+    html[data-theme="dark"] .chip{
+      background:
+        linear-gradient(180deg,
+          color-mix(in oklab, var(--surface) 75%, transparent),
+          color-mix(in oklab, var(--surface) 85%, transparent)
+        );
+      border-color: color-mix(in srgb, var(--border) 85%, var(--text) 15%);
+    }
+    .chip:hover{ transform: translateY(-1px); box-shadow: 0 12px 22px rgba(0,0,0,.10), 0 0 18px var(--glow-strong); }
+    .chip:focus-visible{ outline:3px solid color-mix(in srgb, var(--blue-500) 55%, transparent); outline-offset:2px; }
+
+    .search-card{
+      background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.08), 0 0 0 1px var(--border), 0 0 24px var(--glow);
+    }
+    html[data-theme="dark"] .search-card{ background:var(--surface); }
+    .search-row{ display:grid; grid-template-columns: 1fr 56px; gap:10px; }
+
+    .search-input{
+      padding:1rem 1rem; border-radius:12px; border:1px solid var(--border);
+      background:#fff; color:#0f172a; font-size:1.05rem;
+      transition:border-color var(--fast), box-shadow var(--fast);
+    }
+    html[data-theme="dark"] .search-input{ background:var(--surface); color:var(--text); border-color:var(--border); }
+    .search-input:focus{ outline:none; border-color:var(--blue-500); box-shadow:0 0 0 3px rgba(59,130,246,.25), 0 0 18px var(--glow); }
+
+    .btn{
+      border:1px solid transparent; border-radius:var(--radius);
+      background:linear-gradient(135deg, var(--blue-600), var(--blue-500));
+      color:#fff; padding:.75rem 1rem; font-weight:800;
+      box-shadow:0 8px 20px rgba(59,130,246,.25), 0 0 18px var(--glow);
+      transition: transform var(--fast), box-shadow var(--fast), filter var(--fast);
+      cursor:pointer;
+    }
+    .btn:hover{ transform:translateY(-1px); box-shadow:0 14px 30px rgba(59,130,246,.28), 0 0 26px var(--glow-strong); filter:saturate(1.05); }
+
+    .btn.secondary{
+      background:transparent; color:var(--text); border:1px solid var(--border);
+      box-shadow:0 0 10px var(--glow);
+    }
+    .btn.secondary.is-active{
+      font-weight:900;
+      box-shadow:0 0 0 2px var(--blue-500) inset, 0 0 22px var(--glow-strong);
+    }
+    .btn.is-on{
+      box-shadow:0 0 0 2px var(--blue-600) inset, 0 0 30px var(--glow-strong);
+      animation:glowPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes glowPulse{0%,100%{box-shadow:0 0 0 2px var(--blue-600) inset, 0 0 26px var(--glow-strong);}50%{box-shadow:0 0 0 2px var(--blue-600) inset, 0 0 38px var(--glow-strong);} }
+
+    .loader{
+      border:6px solid rgba(148,163,184,.25); border-top:6px solid var(--blue-500);
+      border-radius:50%; width:52px; height:52px; margin:18px auto;
+      animation:spin 1s linear infinite; box-shadow:0 0 22px var(--glow);
+    }
+    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+    .step-msg{ text-align:center; color:var(--muted); }
+    .success-card{
+      border:1px solid rgba(34,197,94,.35); border-radius:12px; padding:12px 16px; margin:8px 0 4px 0;
+      background:linear-gradient(180deg, rgba(34,197,94,.10), rgba(34,197,94,.05));
+      box-shadow:0 10px 24px rgba(0,0,0,.08), 0 0 22px rgba(34,197,94,.35);
+    }
+    .typing-container{
+      border-radius:var(--radius); padding:12px 16px; border:1px solid var(--border);
+      background:#fff; box-shadow:0 10px 24px rgba(0,0,0,.08), 0 0 22px var(--glow);
+      white-space:pre-wrap; word-wrap:break-word;
+    }
+    html[data-theme="dark"] .typing-container{ background:var(--surface); }
+
+    p, span, li, ul, ol, small, strong, em, h1,h2,h3,h4,h5,h6, label { color:var(--text); }
+    ::selection { background: rgba(59,130,246,.35); color:#fff; }
+  </style>
+</head>
+<body>
+  <!-- sidebar -->
+  <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+    <h3>Customize</h3>
+    <div class="field">
+      <label for="name">Your Name</label>
+      <input id="name" type="text" placeholder="Type your name…" />
+    </div>
+    <div class="field">
+      <label>Appearance</label>
+      <div class="row">
+        <button type="button" class="btn secondary is-active" id="lightBtn" aria-pressed="true">Light</button>
+        <button type="button" class="btn secondary" id="darkBtn" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="temp">Creativity (LLM Temperature): <span id="tempVal">0.50</span></label>
+      <input id="temp" type="range" min="0" max="1" step="0.05" value="0.5" />
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button type="button" class="btn" id="clearBtn">🧹 Clear Chat</button>
+    </div>
+  </aside>
+
+  <!-- latch -->
+  <button type="button" id="sidebarLatch" class="latch" aria-label="Close sidebar" aria-expanded="true" title="Toggle sidebar">❮</button>
+
+  <!-- main -->
+  <div class="app" id="appRoot">
+    <div class="center-wrap">
+      <div class="center-stack">
+        <div class="header">
+          <h1 class="app-title">Medical Diagnostic Device Research</h1>
+          <div class="app-sub" id="greeting">c would you like to search?</div>
+          <div class="row">
+            <div id="modeChip" class="mode-chip" title="Current color mode">
+              <span class="dot"></span><span id="modeChipText">Light Mode</span>
+            </div>
+            <button type="button" class="btn secondary" id="deepBtn">🔎 Deep: OFF</button>
+          </div>
+        </div>
+
+        <!-- suggested prompts -->
+        <section class="examples" aria-label="Suggested prompts">
+          <div class="examples-title">Suggested prompts — click to insert, then press <b>Enter</b> to run</div>
+          <div id="promptList" class="chips"></div>
+        </section>
+
+        <div class="search-card">
+          <div class="search-row">
+            <input id="query" class="search-input" type="text" placeholder="Search medical devices, papers, or terms..." />
+            <button type="button" class="btn" id="searchBtn" title="Search">🔍</button>
+          </div>
+        </div>
+
+        <div id="statusArea"></div>
+        <div id="resultArea"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    // helpers
+    const $ = (id) => document.getElementById(id);
+    const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+
+    // elements
+    const els = {
+      html: document.documentElement,
+      latch: $('sidebarLatch'),
+      lightBtn: $('lightBtn'),
+      darkBtn: $('darkBtn'),
+      deepBtn: $('deepBtn'),
+      clearBtn: $('clearBtn'),
+      temp: $('temp'),
+      tempVal: $('tempVal'),
+      name: $('name'),
+      greeting: $('greeting'),
+      modeChipText: $('modeChipText'),
+      query: $('query'),
+      searchBtn: $('searchBtn'),
+      statusArea: $('statusArea'),
+      resultArea: $('resultArea'),
+      promptList: $('promptList')
+    };
+
+    // state
+    const state = { dark:false, deep:false, username:"", temperature:0.5, typingTimer:null, sidebarOpen:true };
+
+    // prompts list - need to change to be tailored for our database
+    const samplePrompts = [
+      "Which at-home blood pressure monitors are commonly used for hypertension management?",
+      "Which point-of-care troponin assays are used for suspected myocardial infarction in the ED?",
+      "What portable ultrasound devices are used for bedside DVT evaluation?",
+      "Which at-home sleep apnea testing (HSAT) devices are typically prescribed and how do they differ?"
+    ];
+
+    // initialize 
+    window.addEventListener('DOMContentLoaded', () => {
+      try { Object.assign(state, JSON.parse(localStorage.getItem('mdr_ui_state') || '{}')); } catch {}
+      state.sidebarOpen = true;
+
+      setTheme(!!state.dark);
+      setSidebar(true, true);
+
+      els.name && (els.name.value = state.username || '');
+      els.temp && (els.temp.value = state.temperature);
+      els.tempVal && (els.tempVal.textContent = Number(state.temperature).toFixed(2));
+      if (els.deepBtn){
+        els.deepBtn.textContent = `🔎 Deep: ${state.deep ? 'ON' : 'OFF'}`;
+        els.deepBtn.classList.toggle('is-on', state.deep);
+      }
+      els.greeting && (els.greeting.textContent = state.username ? `Hello ${state.username}, what would you like to search?` : 'What would you like to search?');
+
+      renderPrompts();
+
+      on(els.latch, 'click', () => setSidebar(!state.sidebarOpen));
+      on(els.lightBtn, 'click', () => setTheme(false));
+      on(els.darkBtn, 'click',  () => setTheme(true));
+      on(els.deepBtn, 'click', () => {
+        state.deep = !state.deep;
+        els.deepBtn.textContent = `🔎 Deep: ${state.deep ? 'ON' : 'OFF'}`;
+        els.deepBtn.classList.toggle('is-on', state.deep);
+        persist();
+      });
+      on(els.clearBtn, 'click', () => {
+        clearInterval(state.typingTimer || 0);
+        els.query && (els.query.value = '');
+        els.statusArea && (els.statusArea.innerHTML = '');
+        els.resultArea && (els.resultArea.innerHTML = '');
+      });
+      on(els.temp, 'input', (e) => {
+        const v = Number(e.target.value);
+        state.temperature = isFinite(v) ? v : 0.5;
+        els.tempVal && (els.tempVal.textContent = state.temperature.toFixed(2));
+        persist();
+      });
+      on(els.name, 'input', (e) => {
+        state.username = String(e.target.value || '').trim();
+        els.greeting && (els.greeting.textContent = state.username ? `Hello ${state.username}, what would you like to search?` : 'What would you like to search?');
+        persist();
+      });
+      on(els.searchBtn, 'click', runSearch);
+      on(els.query, 'keydown', (e) => { if (e.key === 'Enter') runSearch(); });
+
+      // chips click - fill input and focus (user presses enter to run)
+      on(els.promptList, 'click', (e) => {
+        const t = e.target;
+        if (!(t instanceof HTMLElement)) return;
+        if (!t.classList.contains('chip')) return;
+        const p = t.getAttribute('data-prompt') || t.textContent || '';
+        if (els.query){
+          els.query.value = p.trim();
+          els.query.focus();
+        }
+      });
+
+      els.query && els.query.focus();
+    });
+
+    function persist(){ try { localStorage.setItem('mdr_ui_state', JSON.stringify(state)); } catch {} }
+
+    // theme 
+    function setTheme(dark){
+      state.dark = !!dark;
+      document.documentElement.setAttribute('data-theme', state.dark ? 'dark' : 'light');
+      els.lightBtn && els.lightBtn.classList.toggle('is-active', !state.dark);
+      els.darkBtn  && els.darkBtn.classList.toggle('is-active',  state.dark);
+      els.lightBtn && els.lightBtn.setAttribute('aria-pressed', (!state.dark).toString());
+      els.darkBtn  && els.darkBtn.setAttribute('aria-pressed',  (state.dark).toString());
+      els.modeChipText && (els.modeChipText.textContent = state.dark ? 'Dark Mode' : 'Light Mode');
+      persist();
+    }
+
+    // sidebar
+    function setSidebar(open, skipPersist){
+      state.sidebarOpen = !!open;
+      document.documentElement.setAttribute('data-sidebar', state.sidebarOpen ? 'open' : 'closed');
+      const latch = $('sidebarLatch');
+      if (latch){
+        latch.setAttribute('aria-expanded', state.sidebarOpen.toString());
+        latch.textContent = state.sidebarOpen ? '❮' : '❯';
+      }
+      if (!skipPersist) persist();
+    }
+
+    // render prompt chips
+    function renderPrompts(){
+      if (!els.promptList) return;
+      els.promptList.innerHTML = samplePrompts.map(p =>
+        `<button type="button" class="chip" data-prompt="${escapeAttr(p)}" title="Click to insert">${escapeHtml(p)}</button>`
+      ).join('');
+    }
+
+    // mock backend (need to be integrated)
+    const loremItems = [
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "Ut enim ad minim veniam, quis nostrud exercitation ullamco.",
+      "Duis aute irure dolor in reprehenderit in voluptate velit esse."
+    ];
+    const loremClusters = [
+      "Cluster 1: lorem + ipsum","Cluster 2: dolor + sit","Cluster 3: amet + consectetur"
+    ];
+    function randint(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+    function choice(arr){ return arr[randint(0,arr.length-1)]; }
+
+    function mockNormalSearch(query, temperature){
+      return `
+        <div class="result">
+          <h1>Results: ${escapeHtml(query)}</h1>
+          <h2>Lorem</h2>
+          <ul>${loremItems.map(x=>`<li>${x}</li>`).join('')}</ul>
+          <h2>Ipsum</h2>
+          <ol><li>— lorem</li><li>— ipsum</li><li>— dolor</li></ol>
+          <h2>Dolor</h2>
+          <ul><li>Adipiscing elit</li><li>Sed do eiusmod</li></ul>
+          <p><em>Temperature ${temperature.toFixed(2)} used.</em></p>
+        </div>`;
+    }
+    function mockDeepSearch(query, temperature){
+      const hops = randint(2,5), edges = randint(6,14), flavor = choice(["Graph-RAG","Co-Occurrence","Citations","Communities"]);
+      return `
+        <div class="result">
+          <h1>Results: ${escapeHtml(query)}</h1>
+          <p><strong>${flavor}</strong> ${edges} — ${hops}.</p>
+          <h2>Lorem</h2>
+          <ul>${loremClusters.map(c=>`<li>${c}</li>`).join("")}</ul>
+          <h2>Ipsum</h2><p>— sit amet.</p>
+          <p><em>Temperature ${temperature.toFixed(2)} used.</em></p>
+        </div>`;
+    }
+
+    // search flow - part of animation
+    const steps = [
+      "Creating subqueries from your query...","Searching vector DB for each subquery...",
+      "Running Graph-RAG and collecting related nodes...","Feeding context into the LLM...",
+      "Cross-checking intersections between retrieved articles...","Ranking by match count and semantic relevance...",
+      "Evaluating the results..."
+    ];
+    function runSearch(){
+      const q = (els.query && els.query.value || '').trim();
+      if(!q){ els.query && els.query.focus(); return; }
+
+      clearInterval(state.typingTimer || 0);
+      els.statusArea && (els.statusArea.innerHTML = `<div class="loader"></div><div class="step-msg" id="stepMsg">${steps[0]}</div>`);
+      els.resultArea && (els.resultArea.innerHTML = "");
+
+      let i=0;
+      const stepper = setInterval(()=>{
+        i++;
+        const stepEl = document.getElementById('stepMsg');
+        if(i < steps.length){ stepEl && (stepEl.textContent = steps[i]); }
+        else{
+          clearInterval(stepper);
+          const html = state.deep ? mockDeepSearch(q, state.temperature) : mockNormalSearch(q, state.temperature);
+          showResult(html);
+        }
+      }, 550);
+    }
+
+    function showResult(resultHTML){
+      els.statusArea && (els.statusArea.innerHTML = `<div class="success-card"><b>Success</b>: Results are ready.</div>`);
+      const box = document.createElement('div'); box.className='typing-container';
+      if (els.resultArea){ els.resultArea.innerHTML=''; els.resultArea.appendChild(box); }
+      const plain = stripTags(resultHTML);
+      let pos=0; const step=14;
+      state.typingTimer = setInterval(()=>{
+        if(pos < plain.length){ box.textContent = plain.slice(0,pos) + '█'; pos+=step; }
+        else { clearInterval(state.typingTimer); box.classList.add('result'); box.innerHTML = resultHTML; }
+      }, 8);
+    }
+
+    // utils
+    function stripTags(html){ const t=document.createElement('div'); t.innerHTML=html; return t.textContent || t.innerText || ""; }
+    function escapeHtml(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m] || m)); }
+    function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>

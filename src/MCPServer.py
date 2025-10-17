@@ -21,6 +21,7 @@ from ScholarLink import ScholarLink
 from CacheDB import CacheDB
 from DeepSearch import DeepSearch
 
+# TODO: UI for the user to choose between the 3 diff search methods - normal, deep, intelligent
 
 mcp = FastMCP("MDDS")
 
@@ -305,8 +306,9 @@ Answer:"""
     return answer
 
 @mcp.tool()
-def intelligent_search(query):
-    logging.info("Starting intelligent search")
+def intelligent_search(query: str) -> str:
+    """Intelligent search that chooses between normal and deep search based on query complexity"""
+    logging.info(f"Starting intelligent search with query: {query}")
     
     prompt = f"""
 You are an expert agent that decides whether to use normal search or deep search based on the user's query.
@@ -346,9 +348,9 @@ def format_context_for_prompt(context):
     return formatted_context
 
 @mcp.tool()
-def test_search(input_query: str):
+def test_search(input_query: str) -> str:
     """A lightweight search for testing connectivity"""
-    logging.info("Running test search")
+    logging.info(f"Running test search with query: {input_query}")
     return f"Successfully received query: '{input_query}'. This is a test response to verify the MCP connection works."
 
 if __name__ == "__main__":
