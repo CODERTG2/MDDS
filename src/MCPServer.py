@@ -309,11 +309,22 @@ Answer:"""
 def intelligent_search(query: str) -> str:
     """Intelligent search that chooses between normal and deep search based on query complexity"""
     logging.info(f"Starting intelligent search with query: {query}")
-    
+    keywords = """
+Acute Compartment Syndrome (ACS)
+Point-of-Care (POC) & Telemedicine
+COVID-19 Detection
+Electrochemical Diagnostics
+Device Validation & Regulation
+Diagnostic Hardware: Potentiostats, Pressure Sensors/Gauges (FSRs, CCPGs), Bluetooth Devices, Mobile Interfaces.
+Healthcare AI/ML
+Validation & Ethics
+Wireless Sensor Networks (WSN), Bluetooth, Android/Mobile Integration, Remote Monitoring
+Plasma Physics (Fusion Diagnostics, ITER/W7-X), Strong Magnetic Fields, Vacuum Systems.
+"""
     prompt = f"""
 You are an expert agent that decides whether to use normal search or deep search based on the user's query.
 The normal search is faster and works well for straightforward queries, while the deep search is more thorough and suited for complex or nuanced questions.
-If the query solely focuses on applications of AI and mobile for medical devices, the normal search would be better.
+If the query solely focuses on {keywords} for medical devices, the normal search would be better.
 Given the query: "{query}", decide which search method is more appropriate.
 Respond with either "normal" or "deep" only.
 """
