@@ -13,6 +13,8 @@ The system is built on a client-server architecture using the Model Context Prot
 - **MCP Server**: Python-based server providing advanced search tools and AI capabilities
 - **Data Layer**: FAISS vector database, NetworkX knowledge graph, and MongoDB caching
 
+![System Architecture](assets/architecture.png)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
