@@ -41,45 +41,46 @@ class Evaluation:
         return average
 
     def faithfulness(self, answer):
-        prompt = f"""You are an expert evaluator. You can take an input and return all claims made in the answer.
+        # prompt = f"""You are an expert evaluator. You can take an input and return all claims made in the answer.
         
-        Input:
-        {answer}
+        # Input:
+        # {answer}
         
-        Expected Output Format: ["claim 1", "claim 2", "..."]
-        """
-        response = self.client.chat.completions.create(
-            model="medical-device-research-model",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+        # Expected Output Format: ["claim 1", "claim 2", "..."]
+        # """
+        # response = self.client.chat.completions.create(
+        #     model="medical-device-research-model",
+        #     messages=[
+        #         {"role": "user", "content": prompt}
+        #     ]
+        # )
 
-        claims = response.choices[0].message.content.strip()
+        # claims = response.choices[0].message.content.strip()
 
-        prompt = f"""You are an expert evaluator. Given the following claims and context chunks, determine the number of claims that are fully supported by the context.
-        - Go one claim at a time and check if it is supported by at least one of the context chunks.
-        - If a claim is supported by any chunk, count that as a supported claim.
+        # prompt = f"""You are an expert evaluator. Given the following claims and context chunks, determine the number of claims that are fully supported by the context.
+        # - Go one claim at a time and check if it is supported by at least one of the context chunks.
+        # - If a claim is supported by any chunk, count that as a supported claim.
 
-        Claims:
-        {claims}
+        # Claims:
+        # {claims}
 
-        Context Chunks:
-        {self.chunks}
+        # Context Chunks:
+        # {self.chunks}
 
-        Expected Output: an integer representing the number of fully supported claims.
-        """
-        response = self.client.chat.completions.create(
-            model="medical-device-research-model",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+        # Expected Output: an integer representing the number of fully supported claims.
+        # """
+        # response = self.client.chat.completions.create(
+        #     model="medical-device-research-model",
+        #     messages=[
+        #         {"role": "user", "content": prompt}
+        #     ]
+        # )
 
-        try:
-            return float(response.choices[0].message.content.strip())/len(claims.strip('[]').split(','))
-        except Exception as e:
-            return 0.0
+        # try:
+        #     return float(response.choices[0].message.content.strip())/len(claims.strip('[]').split(','))
+        # except Exception as e:
+        #     return 0.0
+        return 0.0
 
     def drafting(self, answer):
         Agent = DrafterAgent(self.client, self.chunks, self.query, answer, temperature=0.25)
