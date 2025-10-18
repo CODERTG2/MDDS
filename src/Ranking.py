@@ -1,4 +1,4 @@
-def ranking(chunks, k=7):
+def ranking(chunks, k=5):
     counterlist = [chunk["metadata"]["title"] for chunk in chunks]
 
     for chunk in chunks:

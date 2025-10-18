@@ -81,7 +81,7 @@ def normal_search(input_query: str, temp=0.1):
         subqueries = user_query_future.result()
         logging.info(f"Generated {len(subqueries)} subqueries")
 
-        if cache_result is not False:
+        if cache_result != "":
             logging.info("Cache hit found, returning result")
             return cache_result
 
@@ -112,7 +112,7 @@ def normal_search(input_query: str, temp=0.1):
     
     logging.info(f"Starting ranking with {len(full_context)} context items")
     start_ranking = time.time()
-    rankings = ranking(full_context, k=10)
+    rankings = ranking(full_context, k=3)
     logging.info(f"Ranking completed in {time.time() - start_ranking:.2f} seconds")
     
     prompt = f"""
@@ -229,7 +229,7 @@ def deep_search(input_query: str, temp=0.1):
 
     logging.info(f"Starting ranking with {len(full_context)} context items")
     start_ranking = time.time()
-    rankings = ranking(full_context, k=3)
+    rankings = ranking(full_context, k=2)
     logging.info(f"Ranking completed in {time.time() - start_ranking:.2f} seconds")
 
     final_context = chunks + rankings

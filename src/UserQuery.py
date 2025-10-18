@@ -30,6 +30,9 @@ class UserQuery:
         )
         output = response.choices[0].message.content
         self.multi_queries = output.split('\n')
+        if len(self.multi_queries) > 3:
+            self.multi_queries = self.multi_queries[:3]
+            
         return self.multi_queries
 
 
