@@ -1,15 +1,19 @@
 <!doctype html>
-<html lang="en" data-theme="light" data-sidebar="open">
+<html lang="en" data-theme="light" data-sidebar="open" data-glow="on">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UI Tester — Medical Diagnostic Device Research</title>
   <style>
+    /*final*/
     :root{
       --blue-500:#3b82f6; --blue-600:#2563eb; --sky-300:#7dd3fc;
       --success:#22c55e; --radius:14px; --fast:220ms; --slow:420ms;
       --sidebar-w:300px; --center-max:820px; --gutter:24px;
-      --bg:#ffffff; --surface:#f8fafc; --text:#0f172a; --muted:#475569; --border:#e2e8f0; --code-bg:#f8fafc;
+
+      --bg:#FFFEFA;
+      --surface:#f8fafc; --text:#0f172a; --muted:#475569; --border:#e2e8f0; --code-bg:#f8fafc;
+
       --glow: rgba(59,130,246,.32); --glow-strong: rgba(59,130,246,.55);
     }
     html[data-theme="dark"]{
@@ -17,32 +21,69 @@
       --glow: rgba(125,211,252,.38); --glow-strong: rgba(103,232,249,.65);
     }
 
+    html[data-sidebar="closed"]{
+      --center-max: 1120px; 
+    }
+
+    html[data-glow="off"] .glowable { box-shadow:none !important; text-shadow:none !important; }
+    html[data-glow="off"] .app-title { text-shadow:none !important; }
+    html[data-glow="off"] .chip:hover { box-shadow:none !important; }
+    html[data-glow="off"] .btn.is-on { animation:none !important; box-shadow:none !important; }
+
     html, body { transition: background-color var(--slow), color var(--slow), border-color var(--slow); }
     body{
       margin:0; min-height:100vh; color:var(--text); overflow-x:hidden;
       background:
-        radial-gradient(1200px 800px at 10% -10%, rgba(99,102,241,.10), transparent 60%),
-        radial-gradient(900px 600px at 110% 10%, rgba(59,130,246,.10), transparent 50%),
+        radial-gradient(1200px 800px at 10% -10%, rgba(99,102,241,.08), transparent 60%),
+        radial-gradient(900px 600px at 110% 10%, rgba(59,130,246,.08), transparent 50%),
         var(--bg);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial;
     }
 
-    /*sidebar*/
+    .sponsor-logo{
+      position: fixed;
+      z-index: 1200;
+      top: 12px; right: 12px;
+      height: clamp(72px, 10vw, 120px);
+      width: auto;
+      background: transparent; border:0; box-shadow:none; filter:none;
+      pointer-events: none; 
+    }
+
     .sidebar{
       position: fixed; z-index: 1000;
       left:0; top:0; bottom:0; width:var(--sidebar-w);
       background:var(--surface); border-right:1px solid var(--border);
       padding:16px; overflow:auto;
       box-shadow: 0 16px 40px rgba(0,0,0,.15), 0 0 24px var(--glow);
-      transition: transform var(--fast), opacity var(--fast);
+      transition: transform var(--slow), opacity var(--slow);
     }
     html[data-sidebar="closed"] .sidebar{ transform: translateX(-102%); opacity:0; pointer-events:none; }
 
-    .sidebar h3{ margin:8px 2px 10px; font-size:1.1rem; }
-    .field{ margin:12px 2px; display:flex; flex-direction:column; gap:6px; }
+    .sidebar-content{
+      min-height: calc(100vh - 32px);
+      display:flex; flex-direction:column;
+      justify-content:center;             
+      gap:28px;                           
+    }
+    .section{ display:flex; flex-direction:column; gap:22px; } 
+    .side-card{
+      padding:14px; border:1px solid var(--border); border-radius:12px;
+      background: color-mix(in oklab, var(--surface) 92%, transparent);
+      box-shadow: 0 6px 14px rgba(0,0,0,.05);
+      display:flex; flex-direction:column; gap:12px; 
+    }
+    .section-title{ margin:0 2px; font-size:1.06rem; font-weight:800; letter-spacing:.2px; }
+
+    .divider{
+      margin:0; border:0; height:0;
+      border-top:2px solid color-mix(in srgb, var(--border) 65%, var(--text) 35%);
+      box-shadow: 0 0 14px var(--glow);
+    }
+
+    .field{ display:flex; flex-direction:column; gap:8px; }
     .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     label{ font-size:.92rem; color:var(--muted); }
-
     input[type="text"]{
       padding:.6rem .8rem; border-radius:12px; border:1px solid var(--border);
       background:#fff; color:#0f172a; transition:border-color var(--fast), box-shadow var(--fast);
@@ -50,7 +91,6 @@
     html[data-theme="dark"] input[type="text"]{ background:var(--surface); color:var(--text); border-color:var(--border); }
     input[type="range"]{ width:100%; accent-color:var(--blue-600); }
 
-    /*sidebar latch*/
     .latch{
       position: fixed; z-index: 1001;
       top:50%; left:calc(var(--sidebar-w) + 8px); transform:translateY(-50%);
@@ -63,39 +103,53 @@
     }
     html[data-sidebar="closed"] .latch{ left:10px; border-radius:12px; }
 
-    /*main app */
     .app{
-      position: relative; z-index: 1;
-      min-height:100vh;
+      position: relative; z-index: 1; min-height:100vh;
       margin-left: calc(var(--sidebar-w) + var(--gutter));
       padding: var(--gutter);
       display:flex; flex-direction:column;
-    }
-    html[data-sidebar="closed"] .app{ margin-left: var(--gutter); }
 
-    .center-wrap{
-      flex:1 0 auto;
-      display:grid; place-items:center;
-      min-height: calc(100vh - 2*var(--gutter));
+      transition:
+        margin-left var(--slow) ease,
+        transform var(--slow) ease,
+        filter var(--slow) ease;
+      transform-origin: left center;
     }
-    .center-stack{
-      width:100%; max-width:var(--center-max);
-      display:grid; gap:16px;
+    html[data-sidebar="closed"] .app{
+      margin-left: var(--gutter);
+      transform: scale(1.015);
     }
 
-    /* header + search animations*/
+    .center-wrap{ flex:1 0 auto; display:grid; place-items:center; min-height: calc(100vh - 2*var(--gutter)); }
+    .center-stack{ width:100%; max-width:var(--center-max); display:grid; gap:16px; transition:max-width var(--slow) ease; }
+
     .header{
       display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center;
       background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px;
       box-shadow: 0 8px 20px rgba(0,0,0,.08), 0 0 0 1px var(--border), 0 0 24px var(--glow);
     }
+
+    .mainlogo{
+      display:flex; justify-content:center; align-items:center;
+      margin-top:-14px;
+    }
+    .logo-crop{
+      width:260px; 
+      height:220px; 
+      overflow:hidden; border-radius:10px;
+    }
+    .logo-crop img{
+      display:block; width:100%; height:100%; object-fit:contain;
+      filter: drop-shadow(0 0 18px var(--glow));
+    }
+
     .app-title{
       margin:0; font-size:2.6rem; font-weight:800; letter-spacing:.2px;
       background:linear-gradient(90deg, var(--blue-600), var(--blue-500), var(--sky-300), var(--blue-600));
       -webkit-background-clip:text; background-clip:text; color:transparent;
       background-size:200% 100%; animation:titleShine 10s linear infinite;
       text-shadow:0 0 22px var(--glow);
-      position: relative; display:inline-block; isolation:isolate; /* for hover shine */
+      position: relative; display:inline-block; isolation:isolate;
     }
     @keyframes titleShine { 0%{background-position:0% 0} 100%{background-position:200% 0} }
     .app-sub{ color:var(--muted); font-size:1.15rem; }
@@ -109,68 +163,28 @@
     html[data-theme="dark"] .mode-chip{ background:rgba(15,23,42,0.5); }
     .mode-chip .dot{ width:10px; height:10px; border-radius:999px; background:var(--blue-500); box-shadow:0 0 10px var(--glow-strong), 0 0 2px var(--blue-500) inset; }
 
-    /*extra hover affect for title */
     .app-title::after{
-      content:"";
-      position:absolute;
-      inset: 0 auto 0 -150%;
-      width:55%;
-      transform:skewX(-20deg);
-      background:
-        linear-gradient(120deg,
-          rgba(255,255,255,0) 0%,
-          rgba(255,255,255,0.12) 40%,
-          rgba(255,255,255,0.65) 50%,
-          rgba(255,255,255,0.12) 60%,
-          rgba(255,255,255,0) 100%
-        );
-      opacity:0;
-      pointer-events:none;
-      filter: blur(0.2px);
+      content:""; position:absolute; inset: 0 auto 0 -150%; width:55%; transform:skewX(-20deg);
+      background: linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.65) 50%, rgba(255,255,255,0.12) 60%, rgba(255,255,255,0) 100%);
+      opacity:0; pointer-events:none; filter: blur(0.2px);
     }
-    .app-title:hover::after{
-      animation: shineSweep 1.15s ease;
-      opacity:1;
-    }
-    .app-title:hover{
-      text-shadow: 0 0 30px var(--glow-strong), 0 0 8px rgba(255,255,255,.35);
-    }
-    @keyframes shineSweep{
-      from { left:-150%; }
-      to   { left:150%; }
-    }
+    .app-title:hover::after{ animation: shineSweep 1.15s ease; opacity:1; }
+    .app-title:hover{ text-shadow: 0 0 30px var(--glow-strong), 0 0 8px rgba(255,255,255,.35); }
+    @keyframes shineSweep{ from { left:-150%; } to { left:150%; } }
 
-    /*suggested prompts */
-    .examples{
-      display:flex; flex-direction:column; gap:8px; align-items:center; margin-top:2px;
-    }
-    .examples-title{
-      font-size:.9rem; color:var(--muted);
-      text-shadow: 0 0 6px color-mix(in srgb, var(--glow) 50%, transparent);
-    }
-    .chips{
-      display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
-      max-width:var(--center-max);
-    }
+    .examples{ display:flex; flex-direction:column; gap:8px; align-items:center; margin-top:2px; }
+    .examples-title{ font-size:.9rem; color:var(--muted); text-shadow: 0 0 6px color-mix(in srgb, var(--glow) 50%, transparent); }
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:var(--center-max); }
     .chip{
       border:1px solid var(--border);
-      background:
-        linear-gradient(180deg,
-          color-mix(in oklab, var(--surface) 88%, transparent),
-          color-mix(in oklab, var(--surface) 94%, transparent)
-        );
+      background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 88%, transparent), color-mix(in oklab, var(--surface) 94%, transparent));
       color: var(--text);
       border-radius:999px; padding:.40rem .70rem; font-size:.90rem; line-height:1;
       box-shadow: 0 6px 16px rgba(0,0,0,.06), 0 0 10px var(--glow);
-      cursor:pointer;
-      transition: transform var(--fast), box-shadow var(--fast), background-color var(--fast), border-color var(--fast);
+      cursor:pointer; transition: transform var(--fast), box-shadow var(--fast), background-color var(--fast), border-color var(--fast);
     }
     html[data-theme="dark"] .chip{
-      background:
-        linear-gradient(180deg,
-          color-mix(in oklab, var(--surface) 75%, transparent),
-          color-mix(in oklab, var(--surface) 85%, transparent)
-        );
+      background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 75%, transparent), color-mix(in oklab, var(--surface) 85%, transparent));
       border-color: color-mix(in srgb, var(--border) 85%, var(--text) 15%);
     }
     .chip:hover{ transform: translateY(-1px); box-shadow: 0 12px 22px rgba(0,0,0,.10), 0 0 18px var(--glow-strong); }
@@ -233,47 +247,128 @@
       white-space:pre-wrap; word-wrap:break-word;
     }
     html[data-theme="dark"] .typing-container{ background:var(--surface); }
+.result-card,
+.typing-container{
+  width: 100%;
+  max-width: var(--center-max);  
+  margin: 0 auto;                
+  display: block;
+  box-sizing: border-box;
+  overflow: hidden;              
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.md-output{
+  max-width: 100%;
+}
+.md-output pre,
+.md-output code{
+  max-width: 100%;
+  overflow: auto;                 
+}
+.md-output img{
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+    .md-output h1,.md-output h2,.md-output h3,.md-output h4,.md-output h5,.md-output h6{ margin:0.6em 0 0.3em; }
+    .md-output p{ margin:0.6em 0; }
+    .md-output ul,.md-output ol{ margin:0.6em 0 0.6em 1.2em; }
+    .md-output code{ background: color-mix(in oklab, var(--surface) 85%, transparent); padding:0.1em 0.3em; border-radius:6px; }
+    .md-output pre{ background: var(--surface); padding:12px; border:1px solid var(--border); border-radius:10px; overflow:auto; }
+    .md-output a{ color: var(--blue-600); text-decoration: underline; }
 
     p, span, li, ul, ol, small, strong, em, h1,h2,h3,h4,h5,h6, label { color:var(--text); }
     ::selection { background: rgba(59,130,246,.35); color:#fff; }
   </style>
 </head>
 <body>
-  <!-- sidebar -->
-  <aside class="sidebar" id="sidebar" aria-label="Sidebar">
-    <h3>Customize</h3>
-    <div class="field">
-      <label for="name">Your Name</label>
-      <input id="name" type="text" placeholder="Type your name…" />
-    </div>
-    <div class="field">
-      <label>Appearance</label>
-      <div class="row">
-        <button type="button" class="btn secondary is-active" id="lightBtn" aria-pressed="true">Light</button>
-        <button type="button" class="btn secondary" id="darkBtn" aria-pressed="false">Dark</button>
+  <img class="sponsor-logo" src="/assets/logoimg.png" alt="Sponsor logo" />
+
+  <aside class="sidebar glowable" id="sidebar" aria-label="Sidebar">
+    <div class="sidebar-content">
+      <div class="section">
+        <h3 class="section-title">Customize UI</h3>
+
+        <div class="side-card">
+          <div class="field">
+            <label for="name">Your Name</label>
+            <input id="name" type="text" placeholder="Type your name…" />
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="field">
+            <label>Appearance</label>
+            <div class="row">
+              <button type="button" class="btn secondary is-active" id="lightBtn" aria-pressed="true">Light</button>
+              <button type="button" class="btn secondary" id="darkBtn" aria-pressed="false">Dark</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="field">
+            <label>Glow Effects</label>
+            <div class="row">
+              <button type="button" class="btn secondary is-active" id="glowBtn" aria-pressed="true">✨ Glow: On</button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="field">
-      <label for="temp">Creativity (LLM Temperature): <span id="tempVal">0.50</span></label>
-      <input id="temp" type="range" min="0" max="1" step="0.05" value="0.5" />
-    </div>
-    <div class="row" style="margin-top:8px;">
-      <button type="button" class="btn" id="clearBtn">🧹 Clear Chat</button>
+
+      <hr class="divider" />
+
+      <div class="section">
+        <h3 class="section-title">Optimize RAG</h3>
+
+        <div class="side-card">
+          <div class="field">
+            <label for="chunks">Chunks used: <span id="chunksVal">8</span></label>
+            <input id="chunks" type="range" min="1" max="10" step="1" value="8" />
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="field">
+            <label for="articles">Articles retrieved: <span id="articlesVal">3</span></label>
+            <input id="articles" type="range" min="1" max="5" step="1" value="3" />
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="field">
+            <label for="temp">Creativity (LLM Temperature): <span id="tempVal">0.50</span></label>
+            <input id="temp" type="range" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="row">
+            <button type="button" class="btn" id="clearBtn">🧹 Clear Chat</button>
+          </div>
+        </div>
+      </div>
     </div>
   </aside>
 
-  <!-- latch -->
-  <button type="button" id="sidebarLatch" class="latch" aria-label="Close sidebar" aria-expanded="true" title="Toggle sidebar">❮</button>
+  <button type="button" id="sidebarLatch" class="latch glowable" aria-label="Close sidebar" aria-expanded="true" title="Toggle sidebar">❮</button>
 
-  <!-- main -->
   <div class="app" id="appRoot">
     <div class="center-wrap">
       <div class="center-stack">
-        <div class="header">
+        <div class="mainlogo">
+          <div class="logo-crop">
+            <img src="/assets/mainlogo.png" alt="MDDS logo">
+          </div>
+        </div>
+
+        <div class="header glowable">
           <h1 class="app-title">Medical Diagnostic Device Research</h1>
-          <div class="app-sub" id="greeting">c would you like to search?</div>
+          <div class="app-sub" id="greeting">What would you like to search?</div>
           <div class="row">
-            <div id="modeChip" class="mode-chip" title="Current color mode">
+            <div id="modeChip" class="mode-chip glowable" title="Current color mode">
               <span class="dot"></span><span id="modeChipText">Light Mode</span>
             </div>
             <button type="button" class="btn secondary" id="normalBtn">📄 Normal</button>
@@ -282,13 +377,12 @@
           </div>
         </div>
 
-        <!-- suggested prompts -->
         <section class="examples" aria-label="Suggested prompts">
           <div class="examples-title">Suggested prompts — click to insert, then press <b>Enter</b> to run</div>
           <div id="promptList" class="chips"></div>
         </section>
 
-        <div class="search-card">
+        <div class="search-card glowable">
           <div class="search-row">
             <input id="query" class="search-input" type="text" placeholder="Search medical devices, papers, or terms..." />
             <button type="button" class="btn" id="searchBtn" title="Search">🔍</button>
@@ -314,12 +408,17 @@
       latch: $('sidebarLatch'),
       lightBtn: $('lightBtn'),
       darkBtn: $('darkBtn'),
+      glowBtn: $('glowBtn'),
       normalBtn: $('normalBtn'),
       deepBtn: $('deepBtn'),
       intelligentBtn: $('intelligentBtn'),
       clearBtn: $('clearBtn'),
       temp: $('temp'),
       tempVal: $('tempVal'),
+      chunks: $('chunks'),
+      chunksVal: $('chunksVal'),
+      articles: $('articles'),
+      articlesVal: $('articlesVal'),
       name: $('name'),
       greeting: $('greeting'),
       modeChipText: $('modeChipText'),
@@ -331,14 +430,13 @@
     };
 
     // state
-    const state = { dark:false, searchMode:'normal', username:"", temperature:0.5, typingTimer:null, sidebarOpen:true };
+    const state = { dark:false, searchMode:'normal', username:"", temperature:0.5, typingTimer:null, sidebarOpen:true, glow:true, chunks:8, articles:3 };
 
-    // prompts list - need to change to be tailored for our database
+    // preset prompts
     const samplePrompts = [
-      "Which at-home blood pressure monitors are commonly used for hypertension management?",
-      "Which point-of-care troponin assays are used for suspected myocardial infarction in the ED?",
-      "What portable ultrasound devices are used for bedside DVT evaluation?",
-      "Which at-home sleep apnea testing (HSAT) devices are typically prescribed and how do they differ?"
+      "In the context of cross-device federated learning for mobile health diagnostics, what is the FedLoss algorithm?",
+      "What are the basic statistical aspects for the clinical validation of an AI/ML-enabled diagnostic model?",
+      "How was the Mobile Device Interface (MDI) potentiostat prototype functionally verified?"
     ];
 
     // initialize 
@@ -347,32 +445,57 @@
       state.sidebarOpen = true;
 
       setTheme(!!state.dark);
+      setGlow( state.glow !== false );
       setSidebar(true, true);
       setSearchMode(state.searchMode || 'normal');
 
       els.name && (els.name.value = state.username || '');
       els.temp && (els.temp.value = state.temperature);
       els.tempVal && (els.tempVal.textContent = Number(state.temperature).toFixed(2));
+      els.chunks && (els.chunks.value = state.chunks ?? 8);
+      els.chunksVal && (els.chunksVal.textContent = String(state.chunks ?? 8));
+      els.articles && (els.articles.value = state.articles ?? 3);
+      els.articlesVal && (els.articlesVal.textContent = String(state.articles ?? 3));
       els.greeting && (els.greeting.textContent = state.username ? `Hello ${state.username}, what would you like to search?` : 'What would you like to search?');
 
       renderPrompts();
 
+      // sidebar + theme
       on(els.latch, 'click', () => setSidebar(!state.sidebarOpen));
       on(els.lightBtn, 'click', () => setTheme(false));
       on(els.darkBtn, 'click',  () => setTheme(true));
+      on(els.glowBtn, 'click', () => setGlow(!state.glow));
+
+      // search modes
       on(els.normalBtn, 'click', () => setSearchMode('normal'));
       on(els.deepBtn, 'click', () => setSearchMode('deep'));
       on(els.intelligentBtn, 'click', () => setSearchMode('intelligent'));
+
+      // housekeeping
       on(els.clearBtn, 'click', () => {
         clearInterval(state.typingTimer || 0);
         els.query && (els.query.value = '');
         els.statusArea && (els.statusArea.innerHTML = '');
         els.resultArea && (els.resultArea.innerHTML = '');
       });
+
+      // controls
       on(els.temp, 'input', (e) => {
         const v = Number(e.target.value);
         state.temperature = isFinite(v) ? v : 0.5;
         els.tempVal && (els.tempVal.textContent = state.temperature.toFixed(2));
+        persist();
+      });
+      on(els.chunks, 'input', (e) => {
+        const v = Math.max(1, Math.min(10, Number(e.target.value)));
+        state.chunks = v;
+        els.chunksVal && (els.chunksVal.textContent = String(v));
+        persist();
+      });
+      on(els.articles, 'input', (e) => {
+        const v = Math.max(1, Math.min(5, Number(e.target.value)));
+        state.articles = v;
+        els.articlesVal && (els.articlesVal.textContent = String(v));
         persist();
       });
       on(els.name, 'input', (e) => {
@@ -380,10 +503,12 @@
         els.greeting && (els.greeting.textContent = state.username ? `Hello ${state.username}, what would you like to search?` : 'What would you like to search?');
         persist();
       });
+
+      // search triggers
       on(els.searchBtn, 'click', runSearch);
       on(els.query, 'keydown', (e) => { if (e.key === 'Enter') runSearch(); });
 
-      // chips click - fill input and focus (user presses enter to run)
+      // chips click
       on(els.promptList, 'click', (e) => {
         const t = e.target;
         if (!(t instanceof HTMLElement)) return;
@@ -412,19 +537,28 @@
       persist();
     }
 
-    // search mode
-    function setSearchMode(mode){
-      state.searchMode = mode;
-      
-      // Update button states
-      els.normalBtn && els.normalBtn.classList.toggle('is-active', mode === 'normal');
-      els.deepBtn && els.deepBtn.classList.toggle('is-active', mode === 'deep');
-      els.intelligentBtn && els.intelligentBtn.classList.toggle('is-active', mode === 'intelligent');
-      
+    // glow
+    function setGlow(isOn){
+      state.glow = !!isOn;
+      document.documentElement.setAttribute('data-glow', state.glow ? 'on' : 'off');
+      if (els.glowBtn){
+        els.glowBtn.classList.toggle('is-active', state.glow);
+        els.glowBtn.textContent = state.glow ? '✨ Glow: On' : '✨ Glow: Off';
+        els.glowBtn.setAttribute('aria-pressed', state.glow.toString());
+      }
       persist();
     }
 
-    // sidebar
+    // search mode
+    function setSearchMode(mode){
+      state.searchMode = mode;
+      els.normalBtn && els.normalBtn.classList.toggle('is-active', mode === 'normal');
+      els.deepBtn && els.deepBtn.classList.toggle('is-active', mode === 'deep');
+      els.intelligentBtn && els.intelligentBtn.classList.toggle('is-active', mode === 'intelligent');
+      persist();
+    }
+
+    // sidebar (with smooth fill animation already handled via CSS)
     function setSidebar(open, skipPersist){
       state.sidebarOpen = !!open;
       document.documentElement.setAttribute('data-sidebar', state.sidebarOpen ? 'open' : 'closed');
@@ -440,16 +574,15 @@
     function renderPrompts(){
       if (!els.promptList) return;
       els.promptList.innerHTML = samplePrompts.map(p =>
-        `<button type="button" class="chip" data-prompt="${escapeAttr(p)}" title="Click to insert">${escapeHtml(p)}</button>`
+        `<button type="button" class="chip glowable" data-prompt="${escapeAttr(p)}" title="Click to insert">${escapeHtml(p)}</button>`
       ).join('');
     }
 
-    // search flow with real API calls
     const steps = [
       "Creating subqueries from your query...","Searching vector DB for each subquery...",
       "Running Graph-RAG and collecting related nodes...","Feeding context into the LLM...",
       "Cross-checking intersections between retrieved articles...","Ranking by match count and semantic relevance...",
-      "Evaluating the results..."
+      "Evaluating the results...", "Iterating to a final response..."
     ];
     
     async function runSearch(){
@@ -457,7 +590,7 @@
       if(!q){ els.query && els.query.focus(); return; }
 
       clearInterval(state.typingTimer || 0);
-      els.statusArea && (els.statusArea.innerHTML = `<div class="loader"></div><div class="step-msg" id="stepMsg">${steps[0]}</div>`);
+      els.statusArea && (els.statusArea.innerHTML = `<div class="loader glowable"></div><div class="step-msg" id="stepMsg">${steps[0]}</div>`);
       els.resultArea && (els.resultArea.innerHTML = "");
 
       let i=0;
@@ -467,7 +600,7 @@
         if(i < steps.length){ stepEl && (stepEl.textContent = steps[i]); }
         else{
           clearInterval(stepper);
-          performSearch(q);
+          performSearch(q); // MCP call below
         }
       }, 550);
     }
@@ -475,85 +608,100 @@
     async function performSearch(query) {
       try {
         let toolName, toolArgs;
-        
-        // Determine which tool to call based on search mode
         switch(state.searchMode) {
-          case 'normal':
-            toolName = 'normal_search';
-            toolArgs = { input_query: query };
-            break;
-          case 'deep':
-            toolName = 'deep_search';
-            toolArgs = { input_query: query };
-            break;
-          case 'intelligent':
-            toolName = 'intelligent_search';
-            toolArgs = { query: query };
-            break;
-          default:
-            toolName = 'normal_search';
-            toolArgs = { input_query: query };
+          case 'normal':      toolName = 'normal_search';      toolArgs = { input_query: query }; break;
+          case 'deep':        toolName = 'deep_search';        toolArgs = { input_query: query }; break;
+          case 'intelligent': toolName = 'intelligent_search'; toolArgs = { query: query }; break;
+          default:            toolName = 'normal_search';      toolArgs = { input_query: query };
         }
 
         const response = await fetch('/api/mcp', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: toolName,
-            arguments: toolArgs
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: toolName, arguments: toolArgs })
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const result = await response.json();
-        
-        // Format the result for display
+
         const resultHTML = formatSearchResult(result, query, state.searchMode);
         showResult(resultHTML);
-        
       } catch (error) {
         console.error('Search failed:', error);
         els.statusArea && (els.statusArea.innerHTML = `<div style="color: red; text-align: center;">Search failed: ${error.message}</div>`);
       }
     }
 
+    /* ====================== markdown ====================== */
+    function mdToHtml(mdRaw){
+      if (!mdRaw) return "";
+      let s = String(mdRaw)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+      s = s.replace(/```([\s\S]*?)```/g, (_,code) => `<pre><code>${code}</code></pre>`);
+
+      s = s.replace(/^\s*---\s*$/gm, '<hr>');
+
+      s = s
+        .replace(/^###### (.*)$/gm,'<h6>$1</h6>')
+        .replace(/^##### (.*)$/gm,'<h5>$1</h5>')
+        .replace(/^#### (.*)$/gm,'<h4>$1</h4>')
+        .replace(/^### (.*)$/gm,'<h3>$1</h3>')
+        .replace(/^## (.*)$/gm,  '<h2>$1</h2>')
+        .replace(/^# (.*)$/gm,   '<h1>$1</h1>');
+
+      s = s
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g,'<em>$1</em>')
+        .replace(/`([^`]+)`/g,'<code>$1</code>')
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+      s = s.replace(/(^|\n)((?:[-*] .*(?:\n|$))+)/g, (_,lead,block) => {
+        const items = block.trim().split('\n').map(l => l.replace(/^[-*] /,'').trim()).filter(Boolean).map(t=>`<li>${t}</li>`).join('');
+        return `${lead}<ul>${items}</ul>`;
+      });
+
+      s = s.replace(/(^|\n)((?:\d+\. .*(?:\n|$))+)/g, (_,lead,block) => {
+        const items = block.trim().split('\n').map(l => l.replace(/^\d+\. /,'').trim()).filter(Boolean).map(t=>`<li>${t}</li>`).join('');
+        return `${lead}<ol>${items}</ol>`;
+      });
+
+      const parts = s.split(/\n{2,}/).map(chunk => {
+        if (/^\s*<(h\d|ul|ol|pre|blockquote|hr)/.test(chunk)) return chunk;
+        if (chunk.trim().startsWith('<') && chunk.trim().endsWith('>')) return chunk;
+        return `<p>${chunk.replace(/\n/g,'<br>')}</p>`;
+      });
+      return parts.join('\n');
+    }
+
     function formatSearchResult(result, query, mode) {
       const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
       let content = '';
-      
-      if (result.content && Array.isArray(result.content)) {
-        content = result.content.map(item => {
-          if (item.type === 'text') {
-            return item.text;
-          }
-          return '';
-        }).join('\n');
+
+      if (result && typeof result === 'object' && Array.isArray(result.content)) {
+        content = result.content.map(item => item?.type === 'text' ? item.text : '').join('\n');
+      } else if (result && typeof result === 'object' && typeof result.content === 'string') {
+        content = result.content;
       } else if (typeof result === 'string') {
         content = result;
-      } else if (result.content && typeof result.content === 'string') {
-        content = result.content;
       } else {
         content = JSON.stringify(result, null, 2);
       }
 
+      const mdHTML = mdToHtml(content);
+
       return `
         <div class="result">
           <h1>${modeLabel} Search Results: ${escapeHtml(query)}</h1>
-          <div style="background: var(--surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
-            <pre style="white-space: pre-wrap; margin: 0;">${escapeHtml(content)}</pre>
+          <div class="md-output" style="background: var(--surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+            ${mdHTML}
           </div>
-          <p><em>Search mode: ${modeLabel} | Temperature: ${state.temperature.toFixed(2)}</em></p>
+          <p><em>Search mode: ${modeLabel} | Temperature: ${state.temperature.toFixed(2)} | Chunks: ${state.chunks} | Articles: ${state.articles}</em></p>
         </div>`;
     }
 
     function showResult(resultHTML){
-      els.statusArea && (els.statusArea.innerHTML = `<div class="success-card"><b>Success</b>: Results are ready.</div>`);
-      const box = document.createElement('div'); box.className='typing-container';
+      els.statusArea && (els.statusArea.innerHTML = `<div class="success-card glowable"><b>Success</b>: Results are ready.</div>`);
+      const box = document.createElement('div'); box.className='typing-container glowable';
       if (els.resultArea){ els.resultArea.innerHTML=''; els.resultArea.appendChild(box); }
       const plain = stripTags(resultHTML);
       let pos=0; const step=14;
