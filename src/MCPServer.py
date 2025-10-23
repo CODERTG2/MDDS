@@ -61,7 +61,7 @@ logging.basicConfig(
 )
 
 @mcp.tool()
-def normal_search(input_query: str, temp=0.1):
+def normal_search(input_query: str, temp=0.1, k_chunks=3):
     start_time = datetime.now()
     logging.info("Starting normal search..." + datetime.now().strftime("%H:%M:%S.%f")[:-3])
     
@@ -112,7 +112,7 @@ def normal_search(input_query: str, temp=0.1):
     
     logging.info(f"Starting ranking with {len(full_context)} context items")
     start_ranking = time.time()
-    rankings = ranking(full_context, k=3)
+    rankings = ranking(full_context, k=k_chunks)
     logging.info(f"Ranking completed in {time.time() - start_ranking:.2f} seconds")
     
     prompt = f"""
@@ -191,7 +191,7 @@ Answer:"""
     return answer
 
 @mcp.tool()
-def deep_search(input_query: str, temp=0.1):
+def deep_search(input_query: str, temp=0.1, k_chunks=3, k_articles=5):
     start_time = datetime.now()
     logging.info("Starting deep search..." + datetime.now().strftime("%H:%M:%S.%f")[:-3])
     
@@ -205,7 +205,7 @@ def deep_search(input_query: str, temp=0.1):
     
     with concurrent.futures.ThreadPoolExecutor() as executor:
         logging.info("Submitting DeepSearch job")
-        deep_searcher_future = executor.submit(DeepSearch(input_query, model, k_articles=5, k_chunks=7).get_context)
+        deep_searcher_future = executor.submit(DeepSearch(input_query, model, k_articles=k_articles, k_chunks=7).get_context)
         
         logging.info("Submitting ContextRetrieval jobs")
         futures = {executor.submit(ContextRetrieval(model, G, vector_db, dictionary, subquery, k=30).retrieve): subquery for subquery in subqueries}
@@ -229,7 +229,7 @@ def deep_search(input_query: str, temp=0.1):
 
     logging.info(f"Starting ranking with {len(full_context)} context items")
     start_ranking = time.time()
-    rankings = ranking(full_context, k=2)
+    rankings = ranking(full_context, k=k_chunks)
     logging.info(f"Ranking completed in {time.time() - start_ranking:.2f} seconds")
 
     final_context = chunks + rankings
