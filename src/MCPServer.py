@@ -21,8 +21,6 @@ from ScholarLink import ScholarLink
 from CacheDB import CacheDB
 from DeepSearch import DeepSearch
 
-# TODO: UI for the user to choose between the 3 diff search methods - normal, deep, intelligent
-
 mcp = FastMCP("MDDS")
 
 endpoint = "https://aoai-camp.openai.azure.com/"
